@@ -1,0 +1,37 @@
+# Application metrics configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: PT30S
+    distribution:
+      percentiles-histogram:
+        "[inventory.operation.duration]": true
+        "[inventory.query.duration]": true
+        "[inventory.event.processing.duration]": true
+      percentiles:
+        "[inventory.operation.duration]": 0.5, 0.95, 0.99
+        "[inventory.query.duration]": 0.5, 0.95, 0.99
+        "[inventory.event.processing.duration]": 0.5, 0.95, 0.99
+
+# Inventory-specific metrics configuration
+inventory:
+  metrics:
+    # Enable per-SKU metrics (can be resource intensive)
+    per-sku-enabled: true
+    # Maximum number of SKUs to track individually
+    max-sku-metrics: 1000

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw compile:*)",
+      "Bash(mvn compile:*)",
+      "Bash(mvn test:*)",
+      "Bash(./mvnw test:*)",
+      "Bash(mvn clean test:*)",
+      "Bash(mvn jacoco:report:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

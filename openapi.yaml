@@ -1,0 +1,173 @@
+openapi: 3.0.3
+info:
+  title: Inventory Management API
+  description: |
+    API for managing and querying logical inventory levels. 
+    Provides a single source of truth for product stock across the fulfillment network.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/fulfillment/inventory/v1
+paths:
+  /stock_levels/{sku}:
+    get:
+      summary: Get Stock Level for a SKU
+      description: |
+        Retrieves the current inventory levels for a specific SKU.
+        This corresponds to the user story INV-10.
+      operationId: get_stock_level_by_sku
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          description: The unique seller SKU to query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK. The current stock level is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockLevel'
+        '404':
+          description: Not Found. No stock record found for the given SKU.
+        '500':
+          description: Internal Server Error.
+  /adjustments:
+    post:
+      summary: Create a Stock Adjustment
+      description: |
+        Allows an authorized user, like an Inventory Manager, to make a manual adjustment to the quantity on hand for a SKU.
+        This corresponds to the user story INV-08.
+      operationId: create_stock_adjustment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdjustmentRequest'
+      responses:
+        '202':
+          description: Accepted. The adjustment has been accepted and is being processed.
+        '400':
+          description: Bad Request. The request body is invalid or business rules violated.
+        '404':
+          description: Not Found. No stock record found for the SKU to be adjusted.
+        '500':
+          description: Internal Server Error.
+  /reports/health:
+    get:
+      summary: Get Inventory Health Metrics
+      description: |
+        Retrieves inventory health metrics including turnover rates and dead stock analysis.
+        This corresponds to the user story INV-11.
+      operationId: get_inventory_health_metrics
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Filter by product category
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          required: false
+          description: Start date for the analysis period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: false
+          description: End date for the analysis period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK. Inventory health metrics are returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryHealthMetrics'
+        '400':
+          description: Bad Request. Invalid query parameters.
+        '500':
+          description: Internal Server Error.
+
+components:
+  schemas:
+    StockLevel:
+      type: object
+      properties:
+        sku:
+          type: string
+          description: The unique identifier for the product.
+        quantity_on_hand:
+          type: integer
+          format: int32
+          description: The total physical quantity of the item in the warehouse.
+          minimum: 0
+        quantity_allocated:
+          type: integer
+          format: int32
+          description: The quantity reserved for open orders that have not yet been picked.
+          minimum: 0
+        available_to_promise:
+          type: integer
+          format: int32
+          description: The quantity available for new sales (on_hand - allocated).
+          minimum: 0
+      required:
+        - sku
+        - quantity_on_hand
+        - quantity_allocated
+        - available_to_promise
+
+    CreateAdjustmentRequest:
+      type: object
+      required:
+        - sku
+        - quantity_change
+        - reason_code
+      properties:
+        sku:
+          type: string
+          description: The unique identifier for the product.
+        quantity_change:
+          type: integer
+          format: int32
+          description: The change to apply to the quantity on hand. Can be positive (stock intake) or negative (damage, loss).
+        reason_code:
+          type: string
+          enum: [damaged, stock_intake, cycle_count, lost, found, ITEM_PICKED, ALLOCATION, DEALLOCATION, STOCK_RECEIPT]
+          description: Code indicating the reason for the adjustment.
+        comment:
+          type: string
+          description: An optional free-text comment explaining the adjustment.
+
+    InventoryHealthMetrics:
+      type: object
+      properties:
+        inventory_turnover:
+          type: number
+          format: double
+          description: The rate at which inventory is sold, used, or replaced.
+        dead_stock_skus:
+          type: array
+          items:
+            type: string
+          description: List of SKUs identified as dead stock (no movement over a period).
+        total_skus:
+          type: integer
+          format: int64
+          description: Total number of unique SKUs tracked.
+        out_of_stock_skus:
+          type: integer
+          format: int64
+          description: Number of SKUs currently with zero quantity on hand.
+      required:
+        - inventory_turnover
+        - dead_stock_skus
+        - total_skus
+        - out_of_stock_skus
