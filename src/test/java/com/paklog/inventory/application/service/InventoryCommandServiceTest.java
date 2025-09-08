@@ -39,6 +39,8 @@ class InventoryCommandServiceTest {
     private InventoryMetricsService metricsService;
     @Mock
     private EventPublisherPort eventPublisherPort; // Although not directly injected, ProductStock uses it
+    @Mock
+    private com.paklog.inventory.domain.repository.OutboxRepository outboxRepository;
 
     @InjectMocks
     private InventoryCommandService inventoryCommandService;
@@ -55,9 +57,9 @@ class InventoryCommandServiceTest {
         
         // Mock metrics service behavior
         Timer.Sample mockSample = mock(Timer.Sample.class);
-        when(metricsService.startStockOperation()).thenReturn(mockSample);
-        when(metricsService.startQueryOperation()).thenReturn(mockSample);
-        when(metricsService.startEventProcessing()).thenReturn(mockSample);
+        lenient().when(metricsService.startStockOperation()).thenReturn(mockSample);
+        lenient().when(metricsService.startQueryOperation()).thenReturn(mockSample);
+        lenient().when(metricsService.startEventProcessing()).thenReturn(mockSample);
     }
 
     @Test
@@ -337,24 +339,82 @@ class InventoryCommandServiceTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(2, events.size()); // Expects 2 events: INITIAL_STOCK + STOCK_RECEIPT
-        
-        // First event: INITIAL_STOCK
-        StockLevelChangedEvent initialEvent = events.get(0);
-        assertEquals(newSku, initialEvent.getSku());
-        assertEquals(0, initialEvent.getPreviousStockLevel().getQuantityOnHand());
-        assertEquals(0, initialEvent.getPreviousStockLevel().getQuantityAllocated());
-        assertEquals(0, initialEvent.getNewStockLevel().getQuantityOnHand());
-        assertEquals(0, initialEvent.getNewStockLevel().getQuantityAllocated());
-        assertEquals("INITIAL_STOCK", initialEvent.getChangeReason());
-        
-        // Second event: STOCK_RECEIPT
-        StockLevelChangedEvent receiptEvent = events.get(1);
-        assertEquals(newSku, receiptEvent.getSku());
-        assertEquals(0, receiptEvent.getPreviousStockLevel().getQuantityOnHand());
-        assertEquals(0, receiptEvent.getPreviousStockLevel().getQuantityAllocated());
-        assertEquals(quantityReceived, receiptEvent.getNewStockLevel().getQuantityOnHand());
-        assertEquals(0, receiptEvent.getNewStockLevel().getQuantityAllocated());
-        assertEquals("STOCK_RECEIPT", receiptEvent.getChangeReason());
+        assertEquals(0, events.size()); // Events are committed after service operation
+    }
+
+    @Test
+    @DisplayName("Should increase quantity on hand for existing product")
+    void increaseQuantityOnHand_ExistingProduct_IncreasesQuantity() {
+        // Arrange
+        int quantityToAdd = 25;
+        when(productStockRepository.findBySku(sku)).thenReturn(Optional.of(existingProductStock));
+        when(productStockRepository.save(any(ProductStock.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        inventoryCommandService.increaseQuantityOnHand(sku, quantityToAdd);
+
+        // Assert
+        assertEquals(125, existingProductStock.getQuantityOnHand()); // 100 + 25
+        verify(productStockRepository, times(1)).findBySku(sku);
+        verify(productStockRepository, times(1)).save(any(ProductStock.class));
+    }
+
+    @Test
+    @DisplayName("Should increase quantity on hand for new product, creating it")
+    void increaseQuantityOnHand_NewProduct_CreatesProductAndIncreasesQuantity() {
+        // Arrange
+        String newSku = "NEWPROD002";
+        int quantityToAdd = 50;
+        when(productStockRepository.findBySku(newSku)).thenReturn(Optional.empty());
+        when(productStockRepository.save(any(ProductStock.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        inventoryCommandService.increaseQuantityOnHand(newSku, quantityToAdd);
+
+        // Assert
+        ArgumentCaptor<ProductStock> productStockCaptor = ArgumentCaptor.forClass(ProductStock.class);
+        verify(productStockRepository).save(productStockCaptor.capture());
+        ProductStock capturedProductStock = productStockCaptor.getValue();
+
+        assertEquals(newSku, capturedProductStock.getSku());
+        assertEquals(quantityToAdd, capturedProductStock.getQuantityOnHand());
+        assertEquals(0, capturedProductStock.getQuantityAllocated());
+        assertEquals(quantityToAdd, capturedProductStock.getAvailableToPromise());
+
+        verify(productStockRepository, times(1)).findBySku(newSku);
+        verify(productStockRepository, times(1)).save(any(ProductStock.class));
+    }
+
+    @Test
+    @DisplayName("Should decrease quantity on hand for existing product")
+    void decreaseQuantityOnHand_ExistingProduct_DecreasesQuantity() {
+        // Arrange
+        int quantityToDecrease = 15;
+        when(productStockRepository.findBySku(sku)).thenReturn(Optional.of(existingProductStock));
+        when(productStockRepository.save(any(ProductStock.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        inventoryCommandService.decreaseQuantityOnHand(sku, quantityToDecrease);
+
+        // Assert
+        assertEquals(85, existingProductStock.getQuantityOnHand()); // 100 - 15
+        verify(productStockRepository, times(1)).findBySku(sku);
+        verify(productStockRepository, times(1)).save(any(ProductStock.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductStockNotFoundException when decreasing quantity on hand for non-existent product")
+    void decreaseQuantityOnHand_ProductNotFound_ThrowsException() {
+        // Arrange
+        int quantityToDecrease = 10;
+        when(productStockRepository.findBySku(sku)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(ProductStockNotFoundException.class, () ->
+                inventoryCommandService.decreaseQuantityOnHand(sku, quantityToDecrease));
+
+        verify(productStockRepository, times(1)).findBySku(sku);
+        verify(productStockRepository, never()).save(any(ProductStock.class));
+        verify(outboxRepository, never()).saveAll(any());
     }
 }

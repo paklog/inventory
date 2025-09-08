@@ -57,7 +57,7 @@ class InventoryAllocationRequestedHandlerTest {
 
         // Mock metrics service
         Timer.Sample mockSample = mock(Timer.Sample.class);
-        when(metricsService.startEventProcessing()).thenReturn(mockSample);
+        lenient().when(metricsService.startEventProcessing()).thenReturn(mockSample);
     }
 
     @Test

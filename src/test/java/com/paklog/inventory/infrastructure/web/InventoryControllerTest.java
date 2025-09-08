@@ -54,7 +54,7 @@ class InventoryControllerTest {
         when(queryService.getStockLevel(sku)).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(get("/inventory/stock_levels/{sku}", sku))
+        mockMvc.perform(get("/inventory/counters/{sku}", sku))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.sku").value(sku))
@@ -73,7 +73,7 @@ class InventoryControllerTest {
         when(queryService.getStockLevel(sku)).thenThrow(new ProductStockNotFoundException(sku));
 
         // Act & Assert
-        mockMvc.perform(get("/inventory/stock_levels/{sku}", sku))
+        mockMvc.perform(get("/inventory/counters/{sku}", sku))
                 .andExpect(status().isNotFound());
 
         verify(queryService).getStockLevel(sku);
@@ -271,7 +271,7 @@ class InventoryControllerTest {
         when(queryService.getStockLevel(sku)).thenThrow(exception);
 
         // Act & Assert
-        mockMvc.perform(get("/inventory/stock_levels/{sku}", sku))
+        mockMvc.perform(get("/inventory/counters/{sku}", sku))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(exception.getMessage()));
     }

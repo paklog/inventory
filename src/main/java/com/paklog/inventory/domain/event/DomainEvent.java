@@ -10,6 +10,12 @@ public abstract class DomainEvent {
     private final String aggregateId;
     private final LocalDateTime occurredOn;
 
+    protected DomainEvent() {
+        this.eventId = UUID.randomUUID().toString();
+        this.aggregateId = null;
+        this.occurredOn = LocalDateTime.now();
+    }
+
     protected DomainEvent(String aggregateId) {
         this.eventId = UUID.randomUUID().toString();
         this.aggregateId = aggregateId;

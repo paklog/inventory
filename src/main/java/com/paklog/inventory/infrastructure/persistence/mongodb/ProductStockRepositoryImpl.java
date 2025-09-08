@@ -4,7 +4,9 @@ import com.paklog.inventory.domain.model.ProductStock;
 import com.paklog.inventory.domain.repository.ProductStockRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class ProductStockRepositoryImpl implements ProductStockRepository {
@@ -17,17 +19,28 @@ public class ProductStockRepositoryImpl implements ProductStockRepository {
 
     @Override
     public Optional<ProductStock> findBySku(String sku) {
-        return springRepository.findBySku(sku);
+        return springRepository.findBySku(sku).map(ProductStockDocument::toDomain);
     }
 
     @Override
     public ProductStock save(ProductStock productStock) {
-        return springRepository.save(productStock);
+        ProductStockDocument doc = ProductStockDocument.fromDomain(productStock);
+        springRepository.save(doc);
+        return productStock;
     }
 
     @Override
-    public java.util.List<ProductStock> findAll() {
-        return springRepository.findAll();
+    public List<ProductStock> findAll() {
+        return springRepository.findAll().stream()
+                .map(ProductStockDocument::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> findAllSkus() {
+        return springRepository.findAll().stream()
+                .map(ProductStockDocument::getSku)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -9,5 +9,6 @@ public interface ProductStockRepository {
     Optional<ProductStock> findBySku(String sku);
     ProductStock save(ProductStock productStock);
     List<ProductStock> findAll();
+    List<String> findAllSkus();
     void deleteAll();
 }

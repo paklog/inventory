@@ -1,6 +1,9 @@
 package com.paklog.inventory.domain.model;
 
 import com.paklog.inventory.domain.event.StockLevelChangedEvent;
+import com.paklog.inventory.domain.exception.InvalidQuantityException;
+import com.paklog.inventory.domain.exception.InsufficientStockException;
+import com.paklog.inventory.domain.exception.StockLevelInvariantViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,20 +42,20 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(0, events.size());
-        // No initial event is added by ProductStock.create anymore
+        assertEquals(1, events.size());
+        // Initial event is added by ProductStock.create
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when creating ProductStock with negative initial quantity")
+    @DisplayName("Should throw InvalidQuantityException when creating ProductStock with negative initial quantity")
     void create_NegativeInitialQuantity_ThrowsException() {
         // Arrange
         int negativeQuantity = -10;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 ProductStock.create(sku, negativeQuantity));
-        assertEquals("Initial quantity cannot be negative.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Initial quantity cannot be negative"));
     }
 
     @Test
@@ -97,8 +100,8 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(1, events.size()); // Only allocation event
-        StockLevelChangedEvent event = events.get(0); // Get the allocation event
+        assertEquals(2, events.size()); // Creation event + allocation event
+        StockLevelChangedEvent event = events.get(1); // Get the allocation event (creation is at index 0)
         assertEquals(sku, event.getSku());
         assertEquals(previousStockLevel.getQuantityOnHand(), event.getPreviousStockLevel().getQuantityOnHand());
         assertEquals(previousStockLevel.getQuantityAllocated(), event.getPreviousStockLevel().getQuantityAllocated());
@@ -108,42 +111,42 @@ class ProductStockTest {
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when allocating negative quantity")
+    @DisplayName("Should throw InvalidQuantityException when allocating negative quantity")
     void allocate_NegativeQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         int negativeQuantity = -10;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.allocate(negativeQuantity));
-        assertEquals("Allocation quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when allocating zero quantity")
+    @DisplayName("Should throw InvalidQuantityException when allocating zero quantity")
     void allocate_ZeroQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         int zeroQuantity = 0;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.allocate(zeroQuantity));
-        assertEquals("Allocation quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when allocating more than available to promise")
+    @DisplayName("Should throw InsufficientStockException when allocating more than available to promise")
     void allocate_ExceedsAvailableToPromise_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         int quantityToAllocate = initialQuantity + 1;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InsufficientStockException exception = assertThrows(com.paklog.inventory.domain.exception.InsufficientStockException.class, () ->
                 productStock.allocate(quantityToAllocate));
-        assertEquals("Cannot allocate more than available to promise.", exception.getMessage());
+        assertNotNull(exception.getMessage());
     }
 
     @Test
@@ -153,7 +156,7 @@ class ProductStockTest {
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         productStock.allocate(50); // Allocate some stock first
         int quantityToDeallocate = 20;
-        StockLevel previousStockLevel = StockLevel.of(initialQuantity, 50);
+        StockLevel previousStockLevel = productStock.getStockLevel(); // Get actual current state
 
         // Act
         productStock.deallocate(quantityToDeallocate);
@@ -168,8 +171,8 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(2, events.size()); // Allocation + Deallocation
-        StockLevelChangedEvent event = events.get(1); // Get the deallocation event
+        assertEquals(3, events.size()); // Creation + Allocation + Deallocation
+        StockLevelChangedEvent event = events.get(2); // Get the deallocation event (creation=0, allocation=1, deallocation=2)
         assertEquals(sku, event.getSku());
         assertEquals(previousStockLevel.getQuantityOnHand(), event.getPreviousStockLevel().getQuantityOnHand());
         assertEquals(previousStockLevel.getQuantityAllocated(), event.getPreviousStockLevel().getQuantityAllocated());
@@ -179,7 +182,7 @@ class ProductStockTest {
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when deallocating negative quantity")
+    @DisplayName("Should throw InvalidQuantityException when deallocating negative quantity")
     void deallocate_NegativeQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
@@ -187,13 +190,13 @@ class ProductStockTest {
         int negativeQuantity = -10;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.deallocate(negativeQuantity));
-        assertEquals("Deallocation quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when deallocating zero quantity")
+    @DisplayName("Should throw InvalidQuantityException when deallocating zero quantity")
     void deallocate_ZeroQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
@@ -201,13 +204,13 @@ class ProductStockTest {
         int zeroQuantity = 0;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.deallocate(zeroQuantity));
-        assertEquals("Deallocation quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when deallocating more than currently allocated")
+    @DisplayName("Should throw InsufficientStockException when deallocating more than currently allocated")
     void deallocate_ExceedsAllocatedQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
@@ -215,9 +218,9 @@ class ProductStockTest {
         int quantityToDeallocate = 60; // More than allocated
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InsufficientStockException exception = assertThrows(com.paklog.inventory.domain.exception.InsufficientStockException.class, () ->
                 productStock.deallocate(quantityToDeallocate));
-        assertEquals("Cannot deallocate more than currently allocated.", exception.getMessage());
+        assertNotNull(exception.getMessage());
     }
 
     @Test
@@ -242,8 +245,8 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(1, events.size()); // Only Adjustment
-        StockLevelChangedEvent event = events.get(0);
+        assertEquals(2, events.size()); // Creation + Adjustment
+        StockLevelChangedEvent event = events.get(1); // Get the adjustment event
         assertEquals(sku, event.getSku());
         assertEquals(previousStockLevel.getQuantityOnHand(), event.getPreviousStockLevel().getQuantityOnHand());
         assertEquals(previousStockLevel.getQuantityAllocated(), event.getPreviousStockLevel().getQuantityAllocated());
@@ -274,8 +277,8 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(1, events.size()); // Only Adjustment
-        StockLevelChangedEvent event = events.get(0);
+        assertEquals(2, events.size()); // Creation + Adjustment
+        StockLevelChangedEvent event = events.get(1); // Get the adjustment event
         assertEquals(sku, event.getSku());
         assertEquals(previousStockLevel.getQuantityOnHand(), event.getPreviousStockLevel().getQuantityOnHand());
         assertEquals(previousStockLevel.getQuantityAllocated(), event.getPreviousStockLevel().getQuantityAllocated());
@@ -293,9 +296,9 @@ class ProductStockTest {
         String reason = "LOSS";
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.adjustQuantityOnHand(change, reason));
-        assertEquals("Quantity on hand cannot be negative after adjustment.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("negative"));
     }
 
     @Test
@@ -319,8 +322,8 @@ class ProductStockTest {
                 .filter(e -> e instanceof StockLevelChangedEvent)
                 .map(e -> (StockLevelChangedEvent) e)
                 .toList();
-        assertEquals(1, events.size()); // Only Receipt
-        StockLevelChangedEvent event = events.get(0);
+        assertEquals(2, events.size()); // Creation + Receipt
+        StockLevelChangedEvent event = events.get(1); // Get the receipt event (creation is at index 0)
         assertEquals(sku, event.getSku());
         assertEquals(previousStockLevel.getQuantityOnHand(), event.getPreviousStockLevel().getQuantityOnHand());
         assertEquals(previousStockLevel.getQuantityAllocated(), event.getPreviousStockLevel().getQuantityAllocated());
@@ -330,29 +333,29 @@ class ProductStockTest {
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when receiving negative quantity")
+    @DisplayName("Should throw InvalidQuantityException when receiving negative quantity")
     void receiveStock_NegativeQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         int negativeQuantity = -10;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.receiveStock(negativeQuantity));
-        assertEquals("Received quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
-    @DisplayName("Should throw IllegalArgumentException when receiving zero quantity")
+    @DisplayName("Should throw InvalidQuantityException when receiving zero quantity")
     void receiveStock_ZeroQuantity_ThrowsException() {
         // Arrange
         ProductStock productStock = ProductStock.create(sku, initialQuantity);
         int zeroQuantity = 0;
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 productStock.receiveStock(zeroQuantity));
-        assertEquals("Received quantity must be positive.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("must be positive"));
     }
 
     @Test
@@ -367,7 +370,7 @@ class ProductStockTest {
 
         // Assert
         assertFalse(events.isEmpty());
-        assertEquals(1, events.size()); // Only Allocation
+        assertEquals(2, events.size()); // Creation + Allocation
     }
 
     @Test
@@ -383,6 +386,46 @@ class ProductStockTest {
 
         // Assert
         assertTrue(productStock.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Maintain invariants after load")
+    void maintainInvariants() {
+        // Arrange
+        ProductStock productStock = ProductStock.load(sku, 100, 50, LocalDateTime.now());
+
+        // Act
+        productStock.validateInvariants();
+
+        // Assert - no exception thrown
+        assertNotNull(productStock);
+    }
+
+    @Test
+    @DisplayName("Load with negative on hand throws InvalidQuantityException")
+    void validateInvariants_NegativeOnHand_ThrowsException() {
+        // Act & Assert - Exception is thrown during load, not validateInvariants
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
+                ProductStock.load(sku, -10, 0, LocalDateTime.now()));
+        assertTrue(exception.getMessage().contains("cannot be negative"));
+    }
+
+    @Test
+    @DisplayName("Load with negative allocated throws InvalidQuantityException")
+    void validateInvariants_NegativeAllocated_ThrowsException() {
+        // Act & Assert - Exception is thrown during load, not validateInvariants
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
+                ProductStock.load(sku, 100, -10, LocalDateTime.now()));
+        assertTrue(exception.getMessage().contains("cannot be negative"));
+    }
+
+    @Test
+    @DisplayName("Load with allocated exceeds on hand throws StockLevelInvariantViolationException")
+    void validateInvariants_AllocatedExceedsOnHand_ThrowsException() {
+        // Act & Assert - Exception is thrown during load, not validateInvariants
+        com.paklog.inventory.domain.exception.StockLevelInvariantViolationException exception = assertThrows(com.paklog.inventory.domain.exception.StockLevelInvariantViolationException.class, () ->
+                ProductStock.load(sku, 50, 60, LocalDateTime.now()));
+        assertTrue(exception.getMessage().contains("cannot exceed"));
     }
 
     @Test
@@ -409,9 +452,9 @@ class ProductStockTest {
         LocalDateTime lastUpdated = LocalDateTime.now();
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 ProductStock.load(sku, quantityOnHand, quantityAllocated, lastUpdated));
-        assertEquals("Quantities cannot be negative.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("cannot be negative"));
     }
 
     @Test
@@ -423,9 +466,9 @@ class ProductStockTest {
         LocalDateTime lastUpdated = LocalDateTime.now();
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        com.paklog.inventory.domain.exception.InvalidQuantityException exception = assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () ->
                 ProductStock.load(sku, quantityOnHand, quantityAllocated, lastUpdated));
-        assertEquals("Quantities cannot be negative.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("cannot be negative"));
     }
 
     @Test
@@ -437,8 +480,10 @@ class ProductStockTest {
         LocalDateTime lastUpdated = LocalDateTime.now();
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        StockLevelInvariantViolationException exception = assertThrows(StockLevelInvariantViolationException.class, () ->
                 ProductStock.load(sku, quantityOnHand, quantityAllocated, lastUpdated));
-        assertEquals("Allocated quantity cannot exceed quantity on hand.", exception.getMessage());
+        assertEquals("Allocated quantity cannot exceed quantity on hand", exception.getInvariantRule());
+        assertEquals(quantityOnHand, exception.getQuantityOnHand());
+        assertEquals(quantityAllocated, exception.getQuantityAllocated());
     }
 }

@@ -5,11 +5,13 @@ import com.paklog.inventory.application.dto.StockLevelResponse;
 import com.paklog.inventory.domain.exception.ProductStockNotFoundException;
 import com.paklog.inventory.domain.model.ProductStock;
 import com.paklog.inventory.domain.repository.ProductStockRepository;
+import com.paklog.inventory.domain.repository.InventoryLedgerRepository;
 import com.paklog.inventory.infrastructure.metrics.InventoryMetricsService;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,10 +19,12 @@ import java.util.stream.Collectors;
 public class InventoryQueryService {
 
     private final ProductStockRepository productStockRepository;
+    private final InventoryLedgerRepository inventoryLedgerRepository;
     private final InventoryMetricsService metricsService;
 
-    public InventoryQueryService(ProductStockRepository productStockRepository, InventoryMetricsService metricsService) {
+    public InventoryQueryService(ProductStockRepository productStockRepository, InventoryLedgerRepository inventoryLedgerRepository, InventoryMetricsService metricsService) {
         this.productStockRepository = productStockRepository;
+        this.inventoryLedgerRepository = inventoryLedgerRepository;
         this.metricsService = metricsService;
     }
 
@@ -43,26 +47,32 @@ public class InventoryQueryService {
 
     public InventoryHealthMetricsResponse getInventoryHealthMetrics(String category, LocalDate startDate, LocalDate endDate) {
         Timer.Sample sample = metricsService.startQueryOperation();
-        
         try {
-            // This is a simplified implementation.
-            // A real implementation would involve more complex queries, potentially
-            // aggregating data from InventoryLedgerEntry and other sources.
-            // For now, we'll return some dummy data or basic calculations.
+            List<String> allSkus = productStockRepository.findAllSkus();
+            long totalSkus = allSkus.size();
 
-            List<ProductStock> allProductStocks = productStockRepository.findAll(); // Assuming findAll exists or can be added
+            List<ProductStock> allProductStocks = productStockRepository.findAll();
 
-            long totalSkus = allProductStocks.size();
             long outOfStockSkus = allProductStocks.stream()
                     .filter(ps -> ps.getQuantityOnHand() == 0)
                     .count();
 
-            // Dummy inventory turnover and dead stock for demonstration
-            double inventoryTurnover = totalSkus > 0 ? (double) (totalSkus * 4) / totalSkus : 0.0; // Example: 4 turns per year
-            List<String> deadStockSkus = allProductStocks.stream()
-                    .filter(ps -> ps.getQuantityOnHand() > 0 && ps.getQuantityAllocated() == 0 && ps.getLastUpdated().isBefore(java.time.LocalDateTime.now().minusMonths(6)))
-                    .map(ProductStock::getSku)
+            List<String> deadStockSkus = allSkus.stream()
+                    .filter(sku -> {
+                        int pickedQuantity = inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX));
+                        return pickedQuantity == 0;
+                    })
                     .collect(Collectors.toList());
+
+            int totalPicked = allSkus.stream()
+                    .mapToInt(sku -> inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX)))
+                    .sum();
+
+            long totalOnhand = allProductStocks.stream()
+                    .mapToLong(ProductStock::getQuantityOnHand)
+                    .sum();
+
+            double inventoryTurnover = totalOnhand > 0 ? (double) totalPicked / totalOnhand : 0.0;
 
             metricsService.stopQueryOperation(sample, "health_metrics");
             return InventoryHealthMetricsResponse.of(inventoryTurnover, deadStockSkus, totalSkus, outOfStockSkus);

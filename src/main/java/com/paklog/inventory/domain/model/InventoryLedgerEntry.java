@@ -1,15 +1,10 @@
 package com.paklog.inventory.domain.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Document(collection = "inventory_ledger")
 public class InventoryLedgerEntry {
 
-    @Id
     private String id;
     private String sku;
     private LocalDateTime timestamp;
@@ -57,6 +52,11 @@ public class InventoryLedgerEntry {
     public static InventoryLedgerEntry forReceipt(String sku, int quantity, String receiptId) {
         return new InventoryLedgerEntry(UUID.randomUUID().toString(), sku, LocalDateTime.now(),
                 quantity, ChangeType.RECEIPT, receiptId, "Stock Receipt", "System");
+    }
+
+    public static InventoryLedgerEntry load(String id, String sku, LocalDateTime timestamp, int quantityChange,
+                                             ChangeType changeType, String sourceReference, String reason, String operatorId) {
+        return new InventoryLedgerEntry(id, sku, timestamp, quantityChange, changeType, sourceReference, reason, operatorId);
     }
 
     // Getters

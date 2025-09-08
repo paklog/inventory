@@ -1,29 +1,23 @@
 package com.paklog.inventory.domain.model;
 
-import com.paklog.inventory.domain.event.DomainEvent;
-import com.paklog.inventory.domain.event.StockLevelChangedEvent;
-import com.paklog.inventory.domain.exception.InvalidQuantityException;
-import com.paklog.inventory.domain.exception.InsufficientStockException;
-import com.paklog.inventory.domain.exception.StockLevelInvariantViolationException;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-@Document(collection = "product_stocks")
+import com.paklog.inventory.domain.event.DomainEvent;
+import com.paklog.inventory.domain.event.StockLevelChangedEvent;
+import com.paklog.inventory.domain.exception.InsufficientStockException;
+import com.paklog.inventory.domain.exception.InvalidQuantityException;
+import com.paklog.inventory.domain.exception.StockLevelInvariantViolationException;
+
 public class ProductStock {
 
-    @Id
     private String sku;
     private StockLevel stockLevel;
     private LocalDateTime lastUpdated;
 
-    @Transient
     private final List<DomainEvent> uncommittedEvents = new ArrayList<>();
 
     // Private constructor for internal use and reconstruction from persistence
@@ -40,6 +34,7 @@ public class ProductStock {
             throw new InvalidQuantityException("create", initialQuantity, "Initial quantity cannot be negative");
         }
         ProductStock productStock = new ProductStock(sku, StockLevel.of(initialQuantity, 0), LocalDateTime.now());
+        productStock.addEvent(new StockLevelChangedEvent(productStock.getSku(), StockLevel.of(0, 0), productStock.getStockLevel(), "INITIAL_STOCK"));
         return productStock;
     }
 
@@ -148,6 +143,20 @@ public class ProductStock {
         adjustQuantityOnHand(quantity, "STOCK_RECEIPT");
     }
 
+    public void increaseQuantityOnHand(int quantity) {
+        if (quantity <= 0) {
+            throw new InvalidQuantityException("increase", quantity, "Increased quantity must be positive");
+        }
+        adjustQuantityOnHand(quantity, "PHYSICAL_STOCK_ADDED");
+    }
+
+    public void decreaseQuantityOnHand(int quantity) {
+        if (quantity <= 0) {
+            throw new InvalidQuantityException("decrease", quantity, "Decreased quantity must be positive");
+        }
+        adjustQuantityOnHand(-quantity, "PHYSICAL_STOCK_REMOVED");
+    }
+
     public List<DomainEvent> getUncommittedEvents() {
         return Collections.unmodifiableList(uncommittedEvents);
     }
@@ -156,27 +165,27 @@ public class ProductStock {
         this.uncommittedEvents.clear();
     }
 
-    public void addEvent(DomainEvent event) { // Changed to public
+    private void addEvent(DomainEvent event) {
         this.uncommittedEvents.add(event);
     }
 
-    private void validateInvariants() {
+    /* package-private */ void validateInvariants() {
         if (stockLevel.getQuantityOnHand() < 0) {
             throw new StockLevelInvariantViolationException(
-                "Quantity on hand cannot be negative", 
-                stockLevel.getQuantityOnHand(), 
+                "Quantity on hand cannot be negative",
+                stockLevel.getQuantityOnHand(),
                 stockLevel.getQuantityAllocated());
         }
         if (stockLevel.getQuantityAllocated() < 0) {
             throw new StockLevelInvariantViolationException(
-                "Quantity allocated cannot be negative", 
-                stockLevel.getQuantityOnHand(), 
+                "Quantity allocated cannot be negative",
+                stockLevel.getQuantityOnHand(),
                 stockLevel.getQuantityAllocated());
         }
         if (stockLevel.getQuantityAllocated() > stockLevel.getQuantityOnHand()) {
             throw new StockLevelInvariantViolationException(
-                "Allocated quantity cannot exceed quantity on hand", 
-                stockLevel.getQuantityOnHand(), 
+                "Allocated quantity cannot exceed quantity on hand",
+                stockLevel.getQuantityOnHand(),
                 stockLevel.getQuantityAllocated());
         }
     }

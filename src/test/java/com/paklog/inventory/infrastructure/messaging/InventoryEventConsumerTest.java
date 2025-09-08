@@ -97,7 +97,7 @@ class InventoryEventConsumerTest {
         // Arrange
         when(eventHandler1.canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested"))
                 .thenReturn(true);
-        when(eventHandler2.canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested"))
+        lenient().when(eventHandler2.canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested"))
                 .thenReturn(true);
 
         // Act

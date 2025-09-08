@@ -7,28 +7,41 @@ import com.paklog.inventory.domain.model.ProductStock;
 import com.paklog.inventory.domain.model.StockLevel;
 import com.paklog.inventory.domain.repository.InventoryLedgerRepository;
 import com.paklog.inventory.domain.repository.ProductStockRepository;
+import com.paklog.inventory.domain.model.OutboxEvent;
+import com.paklog.inventory.domain.repository.OutboxRepository;
 import com.paklog.inventory.infrastructure.metrics.InventoryMetricsService;
 import io.micrometer.core.instrument.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class InventoryCommandService {
 
+    private static final Logger log = LoggerFactory.getLogger(InventoryCommandService.class);
+
     private final ProductStockRepository productStockRepository;
     private final InventoryLedgerRepository inventoryLedgerRepository;
+    private final OutboxRepository outboxRepository;
     private final InventoryMetricsService metricsService;
 
     public InventoryCommandService(ProductStockRepository productStockRepository,
                                    InventoryLedgerRepository inventoryLedgerRepository,
+                                   OutboxRepository outboxRepository,
                                    InventoryMetricsService metricsService) {
         this.productStockRepository = productStockRepository;
         this.inventoryLedgerRepository = inventoryLedgerRepository;
+        this.outboxRepository = outboxRepository;
         this.metricsService = metricsService;
     }
 
     @Transactional
     public ProductStock adjustStock(String sku, int quantityChange, String reasonCode, String comment, String operatorId) {
+        log.info("Adjusting stock for sku: {}, quantityChange: {}, reasonCode: {}", sku, quantityChange, reasonCode);
         Timer.Sample sample = metricsService.startStockOperation();
         
         try {
@@ -52,15 +65,31 @@ public class InventoryCommandService {
                     savedStock.getQuantityOnHand(), savedStock.getQuantityAllocated());
             
             metricsService.stopStockOperation(sample, "adjust");
+
+            publishDomainEvents(savedStock);
+            log.info("Stock adjusted for sku: {}", sku);
             return savedStock;
         } catch (Exception e) {
+            log.error("Error adjusting stock for sku: {}", sku, e);
             metricsService.stopStockOperation(sample, "adjust_error");
             throw e;
         }
     }
 
+    private void publishDomainEvents(ProductStock productStock) {
+        List<OutboxEvent> outboxEvents = productStock.getUncommittedEvents().stream()
+                .map(OutboxEvent::from)
+                .collect(Collectors.toList());
+        if (!outboxEvents.isEmpty()) {
+            log.info("Publishing {} domain events for sku: {}", outboxEvents.size(), productStock.getSku());
+            outboxRepository.saveAll(outboxEvents);
+            productStock.markEventsAsCommitted();
+        }
+    }
+
     @Transactional
     public ProductStock allocateStock(String sku, int quantity, String orderId) {
+        log.info("Allocating stock for sku: {}, quantity: {}, orderId: {}", sku, quantity, orderId);
         Timer.Sample sample = metricsService.startStockOperation();
         
         try {
@@ -83,8 +112,12 @@ public class InventoryCommandService {
                     savedStock.getQuantityOnHand(), savedStock.getQuantityAllocated());
             
             metricsService.stopStockOperation(sample, "allocate");
+
+            publishDomainEvents(savedStock);
+            log.info("Stock allocated for sku: {}", sku);
             return savedStock;
         } catch (Exception e) {
+            log.error("Error allocating stock for sku: {}", sku, e);
             metricsService.stopStockOperation(sample, "allocate_error");
             throw e;
         }
@@ -92,6 +125,7 @@ public class InventoryCommandService {
 
     @Transactional
     public ProductStock processItemPicked(String sku, int quantity, String orderId) {
+        log.info("Processing item picked for sku: {}, quantity: {}, orderId: {}", sku, quantity, orderId);
         Timer.Sample sample = metricsService.startStockOperation();
         
         try {
@@ -116,8 +150,12 @@ public class InventoryCommandService {
                     savedStock.getQuantityOnHand(), savedStock.getQuantityAllocated());
             
             metricsService.stopStockOperation(sample, "item_picked");
+
+            publishDomainEvents(savedStock);
+            log.info("Item picked processed for sku: {}", sku);
             return savedStock;
         } catch (Exception e) {
+            log.error("Error processing item picked for sku: {}", sku, e);
             metricsService.stopStockOperation(sample, "item_picked_error");
             throw e;
         }
@@ -125,14 +163,14 @@ public class InventoryCommandService {
 
     @Transactional
     public ProductStock receiveStock(String sku, int quantity, String receiptId) {
+        log.info("Receiving stock for sku: {}, quantity: {}, receiptId: {}", sku, quantity, receiptId);
         Timer.Sample sample = metricsService.startStockOperation();
         
         try {
             ProductStock productStock = productStockRepository.findBySku(sku)
                     .orElseGet(() -> {
-                        ProductStock newProduct = ProductStock.create(sku, 0);
-                        newProduct.addEvent(new StockLevelChangedEvent(newProduct.getSku(), StockLevel.of(0, 0), newProduct.getStockLevel(), "INITIAL_STOCK"));
-                        return newProduct;
+                        log.info("Creating new product stock for sku: {}", sku);
+                        return ProductStock.create(sku, 0);
                     });
 
             int previousQuantityOnHand = productStock.getQuantityOnHand();
@@ -151,10 +189,41 @@ public class InventoryCommandService {
                     savedStock.getQuantityOnHand(), savedStock.getQuantityAllocated());
             
             metricsService.stopStockOperation(sample, "receive");
+
+            publishDomainEvents(savedStock);
+            log.info("Stock received for sku: {}", sku);
             return savedStock;
         } catch (Exception e) {
+            log.error("Error receiving stock for sku: {}", sku, e);
             metricsService.stopStockOperation(sample, "receive_error");
             throw e;
         }
+    }
+
+    @Transactional
+    public void increaseQuantityOnHand(String sku, int quantity) {
+        log.info("Increasing quantity on hand for sku: {}, quantity: {}", sku, quantity);
+        ProductStock productStock = productStockRepository.findBySku(sku)
+                .orElseGet(() -> {
+                    log.info("Creating new product stock for sku: {}", sku);
+                    return ProductStock.create(sku, 0);
+                });
+
+        productStock.increaseQuantityOnHand(quantity);
+        productStockRepository.save(productStock);
+        publishDomainEvents(productStock);
+        log.info("Quantity on hand increased for sku: {}", sku);
+    }
+
+    @Transactional
+    public void decreaseQuantityOnHand(String sku, int quantity) {
+        log.info("Decreasing quantity on hand for sku: {}, quantity: {}", sku, quantity);
+        ProductStock productStock = productStockRepository.findBySku(sku)
+                .orElseThrow(() -> new ProductStockNotFoundException(sku));
+
+        productStock.decreaseQuantityOnHand(quantity);
+        productStockRepository.save(productStock);
+        publishDomainEvents(productStock);
+        log.info("Quantity on hand decreased for sku: {}", sku);
     }
 }

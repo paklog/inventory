@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "Inventory Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Stock Level",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/inventory/stock_levels/TEST-SKU-123",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "inventory",
+            "stock_levels",
+            "TEST-SKU-123"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Stock Adjustment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sku\": \"TEST-SKU-123\",\n  \"quantityChange\": 10,\n  \"reasonCode\": \"CYCLE_COUNT\",\n  \"comment\": \"Found extra items\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/inventory/adjustments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "inventory",
+            "adjustments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Inventory Health Metrics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/inventory/reports/health?category=electronics&startDate=2023-01-01&endDate=2023-12-31",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "inventory",
+            "reports",
+            "health"
+          ],
+          "query": [
+            {
+              "key": "category",
+              "value": "electronics"
+            },
+            {
+              "key": "startDate",
+              "value": "2023-01-01"
+            },
+            {
+              "key": "endDate",
+              "value": "2023-12-31"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

@@ -34,8 +34,8 @@ class ProductStockTest {
         assertNotNull(newStock.getLastUpdated());
 
         List<com.paklog.inventory.domain.event.DomainEvent> events = newStock.getUncommittedEvents();
-        assertEquals(0, events.size());
-        // No initial event is added by ProductStock.create anymore
+        assertEquals(1, events.size());
+        // Initial event is added by ProductStock.create
     }
 
     @Test
@@ -60,7 +60,7 @@ class ProductStockTest {
     @Test
     @DisplayName("Should throw exception when allocating more than available")
     void allocateStockExceedsAvailable() {
-        assertThrows(IllegalArgumentException.class, () -> productStock.allocate(101));
+        assertThrows(com.paklog.inventory.domain.exception.InsufficientStockException.class, () -> productStock.allocate(101));
     }
 
     @Test
@@ -87,7 +87,7 @@ class ProductStockTest {
     @Test
     @DisplayName("Should throw exception when deallocating more than allocated")
     void deallocateStockExceedsAllocated() {
-        assertThrows(IllegalArgumentException.class, () -> productStock.deallocate(1)); // No stock allocated yet
+        assertThrows(com.paklog.inventory.domain.exception.InsufficientStockException.class, () -> productStock.deallocate(1)); // No stock allocated yet
     }
 
     @Test
@@ -131,7 +131,7 @@ class ProductStockTest {
     @Test
     @DisplayName("Should throw exception when adjusting quantity on hand to negative")
     void adjustQuantityOnHandToNegative() {
-        assertThrows(IllegalArgumentException.class, () -> productStock.adjustQuantityOnHand(-101, "LOSS"));
+        assertThrows(com.paklog.inventory.domain.exception.InvalidQuantityException.class, () -> productStock.adjustQuantityOnHand(-101, "LOSS"));
     }
 
     @Test
@@ -164,12 +164,9 @@ class ProductStockTest {
         productStock.allocate(50);
         assertDoesNotThrow(() -> productStock.deallocate(20));
         assertDoesNotThrow(() -> productStock.adjustQuantityOnHand(10, "TEST"));
-        assertThrows(IllegalArgumentException.class, () -> {
-            // Simulate an invalid state directly for testing invariant
-            ProductStock invalidStock = ProductStock.load(SKU, 50, 60, LocalDateTime.now());
-            // This should ideally be caught by the constructor, but if somehow bypassed,
-            // subsequent operations should fail.
-            invalidStock.allocate(1); // This operation would trigger invariant check
+        assertThrows(com.paklog.inventory.domain.exception.StockLevelInvariantViolationException.class, () -> {
+            // This will throw during load since allocated > onhand
+            ProductStock invalidStock = ProductStock.load("SKU", 50, 60, LocalDateTime.now());
         });
     }
 }
