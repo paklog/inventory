@@ -1,83 +1,87 @@
 # Inventory Management Service - Architecture Diagrams
 
-## 1. Domain Model - Detailed Class Diagram
+## 1. Domain Model - Detailed Class Diagram (Updated)
 
 ```mermaid
 classDiagram
-    class ProductStock {
-        <<Aggregate Root>>
-        -String sku
-        -int quantityOnHand
-        -int quantityAllocated
-        -LocalDateTime lastUpdated
-        -List~DomainEvent~ uncommittedEvents
-        +int getAvailableToPromise()
-        +void allocate(int quantity)
-        +void deallocate(int quantity) 
-        +void adjustQuantityOnHand(int change, String reason)
-        +void receiveStock(int quantity)
-        +boolean canAllocate(int quantity)
-        +List~DomainEvent~ getUncommittedEvents()
-        +void markEventsAsCommitted()
-        -void addEvent(DomainEvent event)
-        -void validateInvariants()
-    }
+    direction LR
+
+    subgraph "Logical Stock"
+        ProductStock {
+            <<Aggregate Root>>
+            -String sku
+            -StockLevel stockLevel
+            -LocalDateTime lastUpdated
+            +allocate(int quantity)
+            +deallocate(int quantity)
+            +adjustQuantityOnHand(int change, String reason)
+        }
+        StockLevel {
+            <<Value Object>>
+            -int quantityOnHand
+            -int quantityAllocated
+            +int getAvailableToPromise()
+        }
+        ProductStock "1" *-- "1" StockLevel : contains
+    end
+
+    subgraph "Physical Stock"
+        StockLocation {
+            <<Aggregate Root>>
+            -String sku
+            -Location location
+            -int quantity
+            +addStock(int quantity)
+            +removeStock(int quantity)
+            +addPhysicalReservation(String reservationId, int quantity)
+        }
+        Location {
+            <<Value Object>>
+            -String aisle
+            -String shelf
+            -String bin
+        }
+        PhysicalReservation {
+            <<Entity>>
+            -String reservationId
+            -int quantity
+        }
+        StockLocation "1" *-- "1" Location : located at
+        StockLocation "1" *-- "0..*" PhysicalReservation : has
+    end
+
+    subgraph "Auditing & Events"
+        InventoryLedgerEntry {
+            <<Aggregate Root>>
+            -String id
+            -String sku
+            -int quantityChange
+            -ChangeType changeType
+            +forAllocation(sku, quantity, orderId)
+            +forPick(sku, quantity, orderId)
+        }
+        OutboxEvent {
+            <<Entity>>
+            -String id
+            -String aggregateId
+            -String eventData
+            -boolean processed
+        }
+        DomainEvent {
+            <<Abstract>>
+            -String eventId
+            -LocalDateTime occurredOn
+        }
+        StockLevelChangedEvent {
+             -String sku
+             -StockLevel newLevel
+        }
+    end
     
-    class InventoryLedgerEntry {
-        <<Entity>>
-        -String id
-        -String sku
-        -LocalDateTime timestamp
-        -int quantityChange
-        -ChangeType changeType
-        -String sourceReference
-        -String reason
-        -String operatorId
-        +static InventoryLedgerEntry forAllocation(String sku, int quantity, String orderId)
-        +static InventoryLedgerEntry forPick(String sku, int quantity, String orderId)
-        +static InventoryLedgerEntry forAdjustment(String sku, int quantity, String reason, String operatorId)
-        +static InventoryLedgerEntry forReceipt(String sku, int quantity, String receiptId)
-    }
-    
-    class OutboxEvent {
-        <<Entity>>
-        -String id
-        -String aggregateId
-        -String eventType
-        -String eventData
-        -LocalDateTime createdAt
-        -boolean processed
-        -LocalDateTime processedAt
-        +static OutboxEvent from(DomainEvent event)
-        +void markAsProcessed()
-    }
-    
-    class DomainEvent {
-        <<Abstract>>
-        -String eventId
-        -String aggregateId
-        -LocalDateTime occurredOn
-        +String getEventType()
-        +Map~String,Object~ getEventData()
-    }
-    
-    class StockLevelChangedEvent {
-        -String sku
-        -StockLevel previousLevel
-        -StockLevel newLevel
-        -String changeReason
-        +StockLevelChangedEvent(String sku, StockLevel previous, StockLevel current, String reason)
-    }
-    
-    class StockLevel {
-        <<Value Object>>
-        -int quantityOnHand
-        -int quantityAllocated
-        +int getAvailableToPromise()
-        +StockLevel withAllocation(int quantity)
-        +StockLevel withDeallocation(int quantity)
-        +StockLevel withQuantityChange(int change)
-    }
+    ProductStock --> DomainEvent : publishes
+    StockLocation --> DomainEvent : publishes
+    DomainEvent <|-- StockLevelChangedEvent
+    InventoryLedgerEntry --> ChangeType
     
     class ChangeType {
         <<Enumeration>>
@@ -87,19 +91,10 @@ classDiagram
         RECEIPT
         ADJUSTMENT_POSITIVE
         ADJUSTMENT_NEGATIVE
-        CYCLE_COUNT
     }
-    
-    ProductStock --> StockLevel : contains
-    ProductStock --> DomainEvent : publishes
-    ProductStock --> InventoryLedgerEntry : creates audit trail
-    DomainEvent <|-- StockLevelChangedEvent
-    InventoryLedgerEntry --> ChangeType
-    OutboxEvent --> DomainEvent : serializes
-    StockLevelChangedEvent --> StockLevel : contains previous/new
 ```
 
-## 2. Hexagonal Architecture - Detailed Layer Diagram
+## 2. Hexagonal Architecture - Detailed Layer Diagram (Updated)
 
 ```mermaid
 graph TB
@@ -112,47 +107,46 @@ graph TB
     
     subgraph "Infrastructure Layer (Adapters)"
         subgraph "Inbound Adapters"
-            REST[REST Controllers]
+            REST_LOGICAL[Logical Stock REST API]
+            REST_PHYSICAL[Physical Stock REST API]
             KAFKA_IN[Kafka Event Consumers]
         end
         
         subgraph "Outbound Adapters"
             MONGO[MongoDB Repositories]
             KAFKA_OUT[Kafka Event Publishers]
-            OUTBOX_PUB[Outbox Event Publisher]
         end
     end
     
     subgraph "Application Layer (Use Cases)"
-        subgraph "Command Side"
+        subgraph "Logical Stock Services"
             CMD_SVC[Inventory Command Service]
-            CMD_HANDLERS[Command Handlers]
-        end
-        
-        subgraph "Query Side"
             QRY_SVC[Inventory Query Service]
-            QRY_HANDLERS[Query Handlers]
         end
         
+        subgraph "Physical Stock Services"
+            PHY_CMD_SVC[Physical Stock Command Service]
+            PHY_QRY_SVC[Physical Stock Query Service]
+        end
+
         subgraph "Event Handling"
             EVT_HANDLER[Event Handlers]
-            EVT_PUBLISHER[Event Publisher Port]
+            EVT_PUBLISHER_PORT[Event Publisher Port]
         end
     end
     
     subgraph "Domain Layer (Core Business Logic)"
         subgraph "Aggregates"
-            PS[ProductStock Aggregate]
-        end
-        
-        subgraph "Domain Services"
-            DOM_SVC[Inventory Domain Service]
+            PS_AGG[ProductStock Aggregate]
+            SL_AGG[StockLocation Aggregate]
+            LEDGER_AGG[InventoryLedger Aggregate]
         end
         
         subgraph "Repository Interfaces (Ports)"
-            PS_REPO_PORT[ProductStock Repository Port]
-            LEDGER_REPO_PORT[Ledger Repository Port]
-            OUTBOX_REPO_PORT[Outbox Repository Port]
+            PS_REPO_PORT[ProductStock Repo Port]
+            SL_REPO_PORT[StockLocation Repo Port]
+            LEDGER_REPO_PORT[Ledger Repo Port]
+            OUTBOX_REPO_PORT[Outbox Repo Port]
         end
     end
     
@@ -162,28 +156,34 @@ graph TB
     end
     
     %% Connections
-    USER --> REST
+    USER --> REST_LOGICAL
+    USER --> REST_PHYSICAL
     WH --> KAFKA_IN
-    ANALYST --> REST
+    ANALYST --> QRY_SVC
+
+    REST_LOGICAL --> CMD_SVC
+    REST_LOGICAL --> QRY_SVC
+    REST_PHYSICAL --> PHY_CMD_SVC
+    REST_PHYSICAL --> PHY_QRY_SVC
     
-    REST --> CMD_SVC
-    REST --> QRY_SVC
     KAFKA_IN --> EVT_HANDLER
-    
-    CMD_SVC --> PS
-    QRY_SVC --> PS_REPO_PORT
     EVT_HANDLER --> CMD_SVC
-    EVT_PUBLISHER --> KAFKA_OUT
     
-    PS --> DOM_SVC
-    PS --> PS_REPO_PORT
+    CMD_SVC --> PS_AGG
+    QRY_SVC --> PS_REPO_PORT
+    PHY_CMD_SVC --> SL_AGG
+    PHY_QRY_SVC --> SL_REPO_PORT
+
+    EVT_PUBLISHER_PORT -.-> KAFKA_OUT
+    
     CMD_SVC --> LEDGER_REPO_PORT
     CMD_SVC --> OUTBOX_REPO_PORT
+    PHY_CMD_SVC --> PS_AGG
     
     PS_REPO_PORT -.-> MONGO
+    SL_REPO_PORT -.-> MONGO
     LEDGER_REPO_PORT -.-> MONGO
     OUTBOX_REPO_PORT -.-> MONGO
-    OUTBOX_PUB --> KAFKA_OUT
     
     MONGO --> DB
     KAFKA_OUT --> KAFKA_CLUSTER
