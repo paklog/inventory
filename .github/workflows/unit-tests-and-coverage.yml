@@ -25,12 +25,113 @@ jobs:
         run: mvn -B clean verify
 
       - name: Generate coverage summary
-        uses: mikepenz/action-jacoco-report@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          paths: |
+        id: jacoco_summary
+        env:
+          JACOCO_PATTERNS: |
             **/target/site/jacoco/jacoco.xml
-          title: JaCoCo Coverage Report
+        run: |
+          python3 <<'PY'
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          patterns = [p.strip() for p in os.environ.get("JACOCO_PATTERNS", "").splitlines() if p.strip()]
+          if not patterns:
+              print("No JaCoCo patterns provided", file=sys.stderr)
+              sys.exit(1)
+
+          matched_files = []
+          for pattern in patterns:
+              matched_files.extend(Path('.').glob(pattern))
+
+          matched_files = [path for path in matched_files if path.is_file()]
+          if not matched_files:
+              print(f"No JaCoCo XML reports found for: {patterns}", file=sys.stderr)
+              sys.exit(1)
+
+          coverage = {
+              "LINE": {"covered": 0, "missed": 0},
+              "BRANCH": {"covered": 0, "missed": 0},
+          }
+
+          for report_path in matched_files:
+              root = ET.parse(report_path).getroot()
+              for counter in root.iter('counter'):
+                  counter_type = counter.get('type')
+                  if counter_type in coverage:
+                      coverage[counter_type]["covered"] += int(counter.get('covered', 0))
+                      coverage[counter_type]["missed"] += int(counter.get('missed', 0))
+
+          def calc_percentage(values):
+              total = values["covered"] + values["missed"]
+              return round((values["covered"] / total * 100) if total else 0.0, 2)
+
+          line_pct = calc_percentage(coverage["LINE"])
+          branch_pct = calc_percentage(coverage["BRANCH"])
+
+          summary = (
+              "### JaCoCo Coverage\n\n"
+              "| Metric | Coverage |\n"
+              "| --- | --- |\n"
+              f"| Lines | {line_pct:.2f}% |\n"
+              f"| Branches | {branch_pct:.2f}% |\n"
+          )
+
+          print(summary)
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as fh:
+                  fh.write(summary)
+                  fh.write("\n")
+
+          output_path = os.environ.get("GITHUB_OUTPUT")
+          if output_path:
+              delimiter = "JACOCO_SUMMARY_EOF"
+              with open(output_path, "a", encoding="utf-8") as fh:
+                  fh.write(f"line={line_pct:.2f}\n")
+                  fh.write(f"branch={branch_pct:.2f}\n")
+                  fh.write(f"summary<<{delimiter}\n{summary}\n{delimiter}\n")
+          PY
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          COVERAGE_SUMMARY: ${{ steps.jacoco_summary.outputs.summary }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = '<!-- jacoco-coverage-comment -->';
+            const body = `${marker}\n${process.env.COVERAGE_SUMMARY}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find(comment => comment.body && comment.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
 
       - name: Upload coverage report
         if: always()
