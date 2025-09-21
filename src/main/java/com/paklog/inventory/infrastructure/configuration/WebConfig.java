@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class WebConfig {
 
     @Bean
-    public FilterRegistrationBean<LoggingFilter> loggingFilter(LoggingFilter loggingFilter) {
+    public FilterRegistrationBean<LoggingFilter> loggingFilterRegistration(LoggingFilter loggingFilter) {
         FilterRegistrationBean<LoggingFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(loggingFilter);
         registrationBean.addUrlPatterns("/*");

@@ -48,6 +48,10 @@ public class InventoryQueryService {
     public InventoryHealthMetricsResponse getInventoryHealthMetrics(String category, LocalDate startDate, LocalDate endDate) {
         Timer.Sample sample = metricsService.startQueryOperation();
         try {
+            // Handle null dates with defaults (e.g., last 30 days if not specified)
+            LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().minusDays(30);
+            LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+            
             List<String> allSkus = productStockRepository.findAllSkus();
             long totalSkus = allSkus.size();
 
@@ -59,13 +63,13 @@ public class InventoryQueryService {
 
             List<String> deadStockSkus = allSkus.stream()
                     .filter(sku -> {
-                        int pickedQuantity = inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX));
+                        int pickedQuantity = inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, effectiveStartDate.atStartOfDay(), effectiveEndDate.atTime(LocalTime.MAX));
                         return pickedQuantity == 0;
                     })
                     .collect(Collectors.toList());
 
             int totalPicked = allSkus.stream()
-                    .mapToInt(sku -> inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX)))
+                    .mapToInt(sku -> inventoryLedgerRepository.findTotalQuantityPickedBySkuAndDateRange(sku, effectiveStartDate.atStartOfDay(), effectiveEndDate.atTime(LocalTime.MAX)))
                     .sum();
 
             long totalOnhand = allProductStocks.stream()

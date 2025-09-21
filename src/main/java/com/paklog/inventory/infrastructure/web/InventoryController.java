@@ -33,7 +33,7 @@ public class InventoryController {
         this.queryService = queryService;
     }
 
-    @GetMapping("/counters/{sku}")
+    @GetMapping("/stock_levels/{sku}")
     public ResponseEntity<StockLevelResponse> getStockLevel(@PathVariable String sku) {
         log.info("Getting stock level for SKU: {}", sku);
         StockLevelResponse stockLevel = queryService.getStockLevel(sku);
@@ -41,7 +41,7 @@ public class InventoryController {
         return ResponseEntity.ok(stockLevel);
     }
 
-    @PostMapping("/counters/{sku}/reservations")
+    @PostMapping("/stock_levels/{sku}/reservations")
     public ResponseEntity<Void> createReservation(@PathVariable String sku, @RequestBody CreateReservationRequest request) {
         log.info("Creating reservation for SKU: {}, quantity: {}, orderId: {}", sku, request.getQuantity(), request.getOrderId());
         commandService.allocateStock(sku, request.getQuantity(), request.getOrderId());

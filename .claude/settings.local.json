@@ -6,7 +6,10 @@
       "Bash(mvn test:*)",
       "Bash(./mvnw test:*)",
       "Bash(mvn clean test:*)",
-      "Bash(mvn jacoco:report:*)"
+      "Bash(mvn jacoco:report:*)",
+      "Bash(java:*)",
+      "Bash(mvn:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

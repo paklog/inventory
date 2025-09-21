@@ -59,8 +59,7 @@ class InventoryEventConsumerTest {
         // Arrange
         when(eventHandler1.canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested"))
                 .thenReturn(true);
-        when(eventHandler2.canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested"))
-                .thenReturn(false);
+        // eventHandler2 stubbing not needed since stream will short-circuit after finding eventHandler1
 
         // Act
         consumer.listenForWarehouseEvents(testEvent, acknowledgment);
@@ -68,7 +67,8 @@ class InventoryEventConsumerTest {
         // Assert
         verify(eventHandler1).canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested");
         verify(eventHandler1).handle(testEvent);
-        verify(eventHandler2).canHandle("com.example.fulfillment.warehouse.inventory.allocation.requested");
+        // eventHandler2.canHandle() may or may not be called depending on stream processing order
+        // Since eventHandler1 returns true, findFirst() will short-circuit
         verify(eventHandler2, never()).handle(any());
         verify(acknowledgment).acknowledge();
     }
