@@ -9,7 +9,13 @@
       "Bash(mvn jacoco:report:*)",
       "Bash(java:*)",
       "Bash(mvn:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(./mvnw:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(tee:*)",
+      "Read(//private/tmp/**)"
     ],
     "deny": [],
     "ask": []

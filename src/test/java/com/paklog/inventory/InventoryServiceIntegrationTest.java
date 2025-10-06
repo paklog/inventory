@@ -1,6 +1,5 @@
 package com.paklog.inventory;
 
-import com.paklog.inventory.application.dto.CreateAdjustmentRequest;
 import com.paklog.inventory.application.dto.InventoryAllocationRequestedData;
 import com.paklog.inventory.application.dto.ItemPickedData;
 import com.paklog.inventory.application.dto.StockLevelResponse;
@@ -153,14 +152,13 @@ class InventoryServiceIntegrationTest {
         commandService.receiveStock(sku, 50, "INITIAL-RECEIPT");
         outboxRepository.deleteAll(); // Clear events for this test
 
-        CreateAdjustmentRequest request = new CreateAdjustmentRequest();
-        request.setSku(sku);
-        request.setQuantityChange(10);
-        request.setReasonCode("CYCLE_COUNT");
-        request.setComment("Found 10 extra units");
+        // CreateAdjustmentRequest was removed, using direct parameters instead
+        int quantityChange = 10;
+        String reasonCode = "CYCLE_COUNT";
+        String comment = "Found 10 extra units";
 
         // When
-        commandService.adjustStock(request.getSku(), request.getQuantityChange(), request.getReasonCode(), request.getComment(), "test-user");
+        commandService.adjustStock(sku, quantityChange, reasonCode, comment, "test-user");
 
         // Then
         StockLevelResponse stockLevel = queryService.getStockLevel(sku);

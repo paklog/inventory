@@ -1,0 +1,52 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.inventory-valuation.changed",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Inventory Valuation Changed Event",
+  "description": "Published when inventory valuation changes due to cost updates or valuation method changes",
+  "type": "object",
+  "required": ["sku", "valuationMethod", "previousUnitCost", "newUnitCost", "previousTotalValue", "newTotalValue", "quantity", "reason"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "valuationMethod": {
+      "type": "string",
+      "description": "Valuation method used",
+      "enum": ["FIFO", "LIFO", "WEIGHTED_AVERAGE", "STANDARD_COST", "MOVING_AVERAGE"],
+      "example": "WEIGHTED_AVERAGE"
+    },
+    "previousUnitCost": {
+      "type": "number",
+      "description": "Previous unit cost",
+      "example": 10.50
+    },
+    "newUnitCost": {
+      "type": "number",
+      "description": "New unit cost",
+      "example": 12.75
+    },
+    "previousTotalValue": {
+      "type": "number",
+      "description": "Previous total inventory value",
+      "example": 1050.00
+    },
+    "newTotalValue": {
+      "type": "number",
+      "description": "New total inventory value",
+      "example": 1275.00
+    },
+    "quantity": {
+      "type": "integer",
+      "description": "Quantity on hand",
+      "minimum": 0,
+      "example": 100
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for valuation change",
+      "example": "Purchase price increase"
+    }
+  }
+}

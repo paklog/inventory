@@ -30,6 +30,20 @@ public class ProductStockRepositoryImpl implements ProductStockRepository {
     }
 
     @Override
+    public List<ProductStock> saveAll(Iterable<ProductStock> productStocks) {
+        List<ProductStockDocument> docs = new java.util.ArrayList<>();
+        for (ProductStock ps : productStocks) {
+            docs.add(ProductStockDocument.fromDomain(ps));
+        }
+        springRepository.saveAll(docs);
+
+        // Return the original list
+        List<ProductStock> result = new java.util.ArrayList<>();
+        productStocks.forEach(result::add);
+        return result;
+    }
+
+    @Override
     public List<ProductStock> findAll() {
         return springRepository.findAll().stream()
                 .map(ProductStockDocument::toDomain)
@@ -38,7 +52,8 @@ public class ProductStockRepositoryImpl implements ProductStockRepository {
 
     @Override
     public List<String> findAllSkus() {
-        return springRepository.findAll().stream()
+        // Use optimized projection query to fetch only SKU field
+        return springRepository.findAllSkusProjection().stream()
                 .map(ProductStockDocument::getSku)
                 .collect(Collectors.toList());
     }

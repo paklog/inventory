@@ -1,0 +1,16 @@
+{
+  "specversion": "1.0",
+  "id": "880e8400-e29b-41d4-a716-446655440003",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.abc-classification.changed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-PREMIUM-001",
+  "time": "2025-10-05T12:00:00Z",
+  "data": {
+    "sku": "SKU-PREMIUM-001",
+    "previousClass": "B",
+    "newClass": "A",
+    "criteria": "COMBINED",
+    "reason": "Annual reclassification based on sales velocity"
+  }
+}

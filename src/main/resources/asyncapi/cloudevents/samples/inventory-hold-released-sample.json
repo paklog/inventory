@@ -1,0 +1,15 @@
+{
+  "specversion": "1.0",
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.inventory-hold.released",
+  "datacontenttype": "application/json",
+  "subject": "SKU-67890",
+  "time": "2025-10-05T16:00:00Z",
+  "data": {
+    "sku": "SKU-67890",
+    "holdId": "HOLD-2024-001",
+    "quantityReleased": 50,
+    "releasedBy": "quality.inspector@paklog.com"
+  }
+}

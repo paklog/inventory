@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mongodb:
-    image: mongo:4.4.6
+    image: mongo:7.0
     container_name: mongodb
     ports:
       - "27017:27017"
@@ -12,14 +12,14 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongo --quiet
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
+    image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
     ports:
       - "2181:2181"
@@ -28,7 +28,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:7.0.1
+    image: confluentinc/cp-kafka:7.6.1
     container_name: kafka
     ports:
       - "9092:9092"
@@ -55,7 +55,7 @@ services:
     build: .
     container_name: inventory-service
     ports:
-      - "8080:8080"
+      - "8085:8085"
     depends_on:
       mongodb:
         condition: service_healthy

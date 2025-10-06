@@ -1,0 +1,17 @@
+{
+  "specversion": "1.0",
+  "id": "aa0e8400-e29b-41d4-a716-446655440005",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.product-stock.status-changed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-54321",
+  "time": "2025-10-05T13:15:00Z",
+  "data": {
+    "sku": "SKU-54321",
+    "previousStatus": "AVAILABLE",
+    "newStatus": "QUARANTINE",
+    "quantity": 30,
+    "reason": "Quality issue detected during inspection",
+    "lotNumber": "LOT-2024-Q1-002"
+  }
+}

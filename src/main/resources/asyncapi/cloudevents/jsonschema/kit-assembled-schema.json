@@ -1,0 +1,54 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.kit.assembled",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kit Assembled Event",
+  "description": "Published when kits are assembled from component SKUs",
+  "type": "object",
+  "required": ["assemblyOrderId", "kitSku", "kitQuantityPlanned", "kitQuantityProduced", "componentsConsumed", "assemblyLocation", "completedBy"],
+  "properties": {
+    "assemblyOrderId": {
+      "type": "string",
+      "description": "Unique identifier for the assembly order",
+      "example": "ASM-2024-001"
+    },
+    "kitSku": {
+      "type": "string",
+      "description": "Kit SKU being assembled",
+      "example": "KIT-LAPTOP-001"
+    },
+    "kitQuantityPlanned": {
+      "type": "integer",
+      "description": "Planned quantity to assemble",
+      "minimum": 1,
+      "example": 10
+    },
+    "kitQuantityProduced": {
+      "type": "integer",
+      "description": "Actual quantity produced",
+      "minimum": 0,
+      "example": 9
+    },
+    "componentsConsumed": {
+      "type": "object",
+      "description": "Map of component SKUs to quantities consumed",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "example": {
+        "SKU-SCREEN": 9,
+        "SKU-KEYBOARD": 9,
+        "SKU-MOTHERBOARD": 9
+      }
+    },
+    "assemblyLocation": {
+      "type": "string",
+      "description": "Location where assembly occurred",
+      "example": "WH01-ASSEMBLY-01-01-A"
+    },
+    "completedBy": {
+      "type": "string",
+      "description": "User who completed the assembly",
+      "example": "assembly.operator@paklog.com"
+    }
+  }
+}

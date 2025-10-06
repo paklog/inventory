@@ -1,0 +1,19 @@
+{
+  "specversion": "1.0",
+  "id": "110e8400-e29b-41d4-a716-446655440011",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.inventory-snapshot.created",
+  "datacontenttype": "application/json",
+  "subject": "SKU-12345",
+  "time": "2025-10-05T23:59:59Z",
+  "data": {
+    "snapshotId": "SNAP-2024-Q4-001",
+    "sku": "SKU-12345",
+    "snapshotType": "DAILY",
+    "snapshotReason": "SCHEDULED",
+    "quantityOnHand": 150,
+    "quantityAllocated": 30,
+    "quantityAvailable": 120,
+    "createdBy": "inventory.system"
+  }
+}

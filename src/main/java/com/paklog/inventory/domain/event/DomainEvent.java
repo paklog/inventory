@@ -8,7 +8,7 @@ public abstract class DomainEvent {
 
     private final String eventId;
     private final String aggregateId;
-    private final LocalDateTime occurredOn;
+    protected final LocalDateTime occurredOn;
 
     protected DomainEvent() {
         this.eventId = UUID.randomUUID().toString();

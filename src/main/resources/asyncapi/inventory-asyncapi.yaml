@@ -1,0 +1,204 @@
+asyncapi: 3.0.0
+info:
+  title: Paklog Inventory Management Service - CloudEvents API
+  version: 1.0.0
+  description: |
+    Event-driven API for the Inventory Management Service.
+    All events follow the CloudEvents v1.0 specification.
+
+    This service publishes 10 different event types covering:
+    - Stock level changes
+    - Inventory holds (placed/released)
+    - Stock transfers (initiated/completed)
+    - ABC classification changes
+    - Inventory valuation changes
+    - Stock status changes
+    - Kit management (created/assembled/disassembled)
+    - Inventory snapshots
+
+servers:
+  production:
+    host: kafka-prod.paklog.com:9092
+    protocol: kafka
+    description: Production Kafka broker
+
+  staging:
+    host: kafka-staging.paklog.com:9092
+    protocol: kafka
+    description: Staging Kafka broker
+
+channels:
+  inventoryEvents:
+    address: fulfillment.inventory.v1.events
+    description: Primary channel for all inventory domain events
+    messages:
+      stockLevelChanged:
+        $ref: '#/components/messages/StockLevelChanged'
+      inventoryHoldPlaced:
+        $ref: '#/components/messages/InventoryHoldPlaced'
+      inventoryHoldReleased:
+        $ref: '#/components/messages/InventoryHoldReleased'
+      stockStatusChanged:
+        $ref: '#/components/messages/StockStatusChanged'
+      inventoryValuationChanged:
+        $ref: '#/components/messages/InventoryValuationChanged'
+      abcClassificationChanged:
+        $ref: '#/components/messages/ABCClassificationChanged'
+      stockTransferInitiated:
+        $ref: '#/components/messages/StockTransferInitiated'
+      stockTransferCompleted:
+        $ref: '#/components/messages/StockTransferCompleted'
+      kitCreated:
+        $ref: '#/components/messages/KitCreated'
+      kitAssembled:
+        $ref: '#/components/messages/KitAssembled'
+      kitDisassembled:
+        $ref: '#/components/messages/KitDisassembled'
+      inventorySnapshotCreated:
+        $ref: '#/components/messages/InventorySnapshotCreated'
+
+operations:
+  publishInventoryEvents:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryEvents'
+    summary: Publish inventory domain events
+    description: Service publishes CloudEvents whenever inventory state changes
+
+components:
+  messages:
+    StockLevelChanged:
+      name: StockLevelChanged
+      title: Stock Level Changed Event
+      summary: Published when product stock levels change
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/stock-level-changed-schema.json'
+
+    InventoryHoldPlaced:
+      name: InventoryHoldPlaced
+      title: Inventory Hold Placed Event
+      summary: Published when inventory is placed on hold
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/inventory-hold-placed-schema.json'
+
+    InventoryHoldReleased:
+      name: InventoryHoldReleased
+      title: Inventory Hold Released Event
+      summary: Published when inventory hold is released
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/inventory-hold-released-schema.json'
+
+    StockStatusChanged:
+      name: StockStatusChanged
+      title: Stock Status Changed Event
+      summary: Published when inventory stock status changes
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/stock-status-changed-schema.json'
+
+    InventoryValuationChanged:
+      name: InventoryValuationChanged
+      title: Inventory Valuation Changed Event
+      summary: Published when inventory valuation changes
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/inventory-valuation-changed-schema.json'
+
+    ABCClassificationChanged:
+      name: ABCClassificationChanged
+      title: ABC Classification Changed Event
+      summary: Published when SKU ABC classification changes
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/abc-classification-changed-schema.json'
+
+    StockTransferInitiated:
+      name: StockTransferInitiated
+      title: Stock Transfer Initiated Event
+      summary: Published when stock transfer is initiated
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/stock-transfer-initiated-schema.json'
+
+    StockTransferCompleted:
+      name: StockTransferCompleted
+      title: Stock Transfer Completed Event
+      summary: Published when stock transfer is completed
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/stock-transfer-completed-schema.json'
+
+    KitCreated:
+      name: KitCreated
+      title: Kit Created Event
+      summary: Published when a new kit definition is created
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/kit-created-schema.json'
+
+    KitAssembled:
+      name: KitAssembled
+      title: Kit Assembled Event
+      summary: Published when kits are assembled from components
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/kit-assembled-schema.json'
+
+    KitDisassembled:
+      name: KitDisassembled
+      title: Kit Disassembled Event
+      summary: Published when kits are disassembled into components
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/kit-disassembled-schema.json'
+
+    InventorySnapshotCreated:
+      name: InventorySnapshotCreated
+      title: Inventory Snapshot Created Event
+      summary: Published when inventory snapshot is created
+      contentType: application/cloudevents+json
+      payload:
+        $ref: 'file://./cloudevents/jsonschema/inventory-snapshot-created-schema.json'
+
+  schemas:
+    # CloudEvents envelope schema
+    CloudEventEnvelope:
+      type: object
+      required: [specversion, id, source, type]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+          description: CloudEvents specification version
+        id:
+          type: string
+          description: Unique event identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        source:
+          type: string
+          format: uri
+          description: Event source identifier
+          example: "/fulfillment/inventory-service"
+        type:
+          type: string
+          description: Event type following naming convention
+          pattern: "^com\\.paklog\\.inventory\\.fulfillment\\.v1\\.[a-z-]+\\.[a-z-]+$"
+          example: "com.paklog.inventory.fulfillment.v1.product-stock.level-changed"
+        datacontenttype:
+          type: string
+          const: "application/json"
+        subject:
+          type: string
+          description: Subject of the event (e.g., SKU)
+          example: "SKU-12345"
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp
+          example: "2025-10-05T14:30:00Z"
+        data:
+          type: object
+          description: Event-specific payload conforming to schema

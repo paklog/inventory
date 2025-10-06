@@ -8,8 +8,6 @@ import java.util.Map;
 
 public class StockLevelChangedEvent extends DomainEvent {
 
-    private static final String EVENT_TYPE = "com.example.fulfillment.inventory.stock_level.changed";
-
     private final String sku;
     private final StockLevel previousStockLevel;
     private final StockLevel newStockLevel;
@@ -39,9 +37,14 @@ public class StockLevelChangedEvent extends DomainEvent {
         return changeReason;
     }
 
+    // Alias for getOccurredOn
+    public java.time.LocalDateTime getOccurredAt() {
+        return getOccurredOn();
+    }
+
     @Override
     public String getEventType() {
-        return EVENT_TYPE;
+        return CloudEventType.STOCK_LEVEL_CHANGED.getType();
     }
 
     @Override

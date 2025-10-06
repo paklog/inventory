@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "id": "990e8400-e29b-41d4-a716-446655440004",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.stock-transfer.completed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-12345",
+  "time": "2025-10-05T15:45:00Z",
+  "data": {
+    "transferId": "XFER-2024-001",
+    "sku": "SKU-12345",
+    "fromLocation": "WH01-A-01-01-A",
+    "toLocation": "WH01-B-02-03-B",
+    "quantityTransferred": 100,
+    "completedBy": "warehouse.operator@paklog.com",
+    "lotNumber": "LOT-2024-Q1-001"
+  }
+}

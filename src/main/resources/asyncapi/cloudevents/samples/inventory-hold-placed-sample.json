@@ -1,0 +1,17 @@
+{
+  "specversion": "1.0",
+  "id": "660e8400-e29b-41d4-a716-446655440001",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.inventory-hold.placed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-67890",
+  "time": "2025-10-05T14:35:00Z",
+  "data": {
+    "sku": "SKU-67890",
+    "holdId": "HOLD-2024-001",
+    "holdType": "QUALITY_HOLD",
+    "quantityOnHold": 50,
+    "reason": "Quality inspection pending",
+    "lotNumber": "LOT-2024-Q1-001"
+  }
+}

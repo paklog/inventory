@@ -4,12 +4,14 @@ import com.paklog.inventory.domain.event.DomainEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Document(collection = "outbox_events")
+@CompoundIndex(name = "processed_created_idx", def = "{'processed': 1, 'createdAt': 1}")
 public class OutboxEvent {
 
     @Id

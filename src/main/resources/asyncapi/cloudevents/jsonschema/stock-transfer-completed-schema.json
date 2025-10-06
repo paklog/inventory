@@ -1,0 +1,46 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.completed",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stock Transfer Completed Event",
+  "description": "Published when a stock transfer between locations is completed",
+  "type": "object",
+  "required": ["transferId", "sku", "fromLocation", "toLocation", "quantityTransferred", "completedBy"],
+  "properties": {
+    "transferId": {
+      "type": "string",
+      "description": "Unique identifier for the transfer",
+      "example": "XFER-2024-001"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "fromLocation": {
+      "type": "string",
+      "description": "Source location code",
+      "example": "WH01-A-01-01-A"
+    },
+    "toLocation": {
+      "type": "string",
+      "description": "Destination location code",
+      "example": "WH01-B-02-03-B"
+    },
+    "quantityTransferred": {
+      "type": "integer",
+      "description": "Actual quantity transferred",
+      "minimum": 1,
+      "example": 100
+    },
+    "completedBy": {
+      "type": "string",
+      "description": "User who completed the transfer",
+      "example": "warehouse.operator@paklog.com"
+    },
+    "lotNumber": {
+      "type": "string",
+      "description": "Optional lot number",
+      "example": "LOT-2024-Q1-001"
+    }
+  }
+}

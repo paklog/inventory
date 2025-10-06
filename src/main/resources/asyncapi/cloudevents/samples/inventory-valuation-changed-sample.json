@@ -1,0 +1,19 @@
+{
+  "specversion": "1.0",
+  "id": "bb0e8400-e29b-41d4-a716-446655440006",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.inventory-valuation.changed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-PREMIUM-002",
+  "time": "2025-10-05T10:00:00Z",
+  "data": {
+    "sku": "SKU-PREMIUM-002",
+    "valuationMethod": "WEIGHTED_AVERAGE",
+    "previousUnitCost": 10.50,
+    "newUnitCost": 12.75,
+    "previousTotalValue": 1050.00,
+    "newTotalValue": 1275.00,
+    "quantity": 100,
+    "reason": "Purchase price increase"
+  }
+}

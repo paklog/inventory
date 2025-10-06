@@ -1,27 +1,35 @@
-# Use a base image with Java 17
-FROM openjdk:17-jdk-slim
-
-# Set the working directory in the container
+# Multi-stage build for optimized image size
+# Build stage
+FROM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /app
 
-# Copy the Maven wrapper files to the container
+# Copy Maven wrapper and pom.xml first for better layer caching
 COPY mvnw .
 COPY .mvn .mvn
-
-# Copy the pom.xml file
 COPY pom.xml .
 
-# Build the application - this will download dependencies and compile code
-# Use --batch-mode to prevent interactive prompts
-# Use -DskipTests to skip tests during the build (tests will be run in CI/CD)
-RUN ./mvnw clean install -DskipTests
+# Download dependencies (cached layer)
+RUN ./mvnw dependency:go-offline -B
 
-# Copy the generated JAR file
-# The JAR file will be in target/inventory-0.0.1-SNAPSHOT.jar
-COPY target/inventory-0.0.1-SNAPSHOT.jar app.jar
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN ./mvnw clean package -DskipTests -B
+
+# Runtime stage
+FROM eclipse-temurin:25-jre-alpine
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy only the built artifact from build stage
+COPY --from=build /app/target/*.jar app.jar
 
 # Expose the port the application runs on
-EXPOSE 8080
+EXPOSE 8085
 
-# Command to run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Use JVM optimizations for containerized environments
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

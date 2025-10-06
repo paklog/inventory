@@ -9,10 +9,12 @@ import com.paklog.inventory.domain.repository.InventoryLedgerRepository;
 import com.paklog.inventory.domain.repository.ProductStockRepository;
 import com.paklog.inventory.domain.model.OutboxEvent;
 import com.paklog.inventory.domain.repository.OutboxRepository;
+import com.paklog.inventory.infrastructure.cache.CacheConfiguration;
 import com.paklog.inventory.infrastructure.metrics.InventoryMetricsService;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class InventoryCommandService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfiguration.PRODUCT_STOCK_CACHE, key = "#sku")
     public ProductStock adjustStock(String sku, int quantityChange, String reasonCode, String comment, String operatorId) {
         log.info("Adjusting stock for sku: {}, quantityChange: {}, reasonCode: {}", sku, quantityChange, reasonCode);
         Timer.Sample sample = metricsService.startStockOperation();

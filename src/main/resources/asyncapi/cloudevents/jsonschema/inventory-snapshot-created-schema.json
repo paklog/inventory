@@ -1,0 +1,55 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.inventory-snapshot.created",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Inventory Snapshot Created Event",
+  "description": "Published when a point-in-time inventory snapshot is created for reporting or auditing",
+  "type": "object",
+  "required": ["snapshotId", "sku", "snapshotType", "snapshotReason", "quantityOnHand", "quantityAllocated", "createdBy"],
+  "properties": {
+    "snapshotId": {
+      "type": "string",
+      "description": "Unique identifier for the snapshot",
+      "example": "SNAP-2024-Q1-001"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "snapshotType": {
+      "type": "string",
+      "description": "Type of snapshot",
+      "enum": ["DAILY", "WEEKLY", "MONTHLY", "ANNUAL", "AD_HOC"],
+      "example": "DAILY"
+    },
+    "snapshotReason": {
+      "type": "string",
+      "description": "Reason for creating snapshot",
+      "enum": ["SCHEDULED", "CYCLE_COUNT", "AUDIT", "MONTH_END", "YEAR_END", "MANUAL"],
+      "example": "SCHEDULED"
+    },
+    "quantityOnHand": {
+      "type": "integer",
+      "description": "Quantity on hand at snapshot time",
+      "minimum": 0,
+      "example": 150
+    },
+    "quantityAllocated": {
+      "type": "integer",
+      "description": "Allocated quantity at snapshot time",
+      "minimum": 0,
+      "example": 30
+    },
+    "quantityAvailable": {
+      "type": "integer",
+      "description": "Available to promise at snapshot time",
+      "minimum": 0,
+      "example": 120
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "User or system that created the snapshot",
+      "example": "inventory.system"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "id": "cc0e8400-e29b-41d4-a716-446655440007",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.stock-transfer.initiated",
+  "datacontenttype": "application/json",
+  "subject": "SKU-12345",
+  "time": "2025-10-05T14:00:00Z",
+  "data": {
+    "transferId": "XFER-2024-001",
+    "sku": "SKU-12345",
+    "sourceLocation": "WH01-A-01-01-A",
+    "destinationLocation": "WH01-B-02-03-B",
+    "quantity": 100,
+    "initiatedBy": "warehouse.operator@paklog.com",
+    "reason": "Replenishment to pick face"
+  }
+}

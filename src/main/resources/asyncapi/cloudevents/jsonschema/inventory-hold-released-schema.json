@@ -1,0 +1,31 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.inventory-hold.released",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Inventory Hold Released Event",
+  "description": "Published when an inventory hold is released and stock becomes available again",
+  "type": "object",
+  "required": ["sku", "holdId", "quantityReleased", "releasedBy"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "holdId": {
+      "type": "string",
+      "description": "Unique identifier for the hold being released",
+      "example": "HOLD-2024-001"
+    },
+    "quantityReleased": {
+      "type": "integer",
+      "description": "Quantity being released from hold",
+      "minimum": 1,
+      "example": 50
+    },
+    "releasedBy": {
+      "type": "string",
+      "description": "User or system that released the hold",
+      "example": "quality.inspector@paklog.com"
+    }
+  }
+}

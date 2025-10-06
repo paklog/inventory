@@ -1,19 +1,24 @@
 package com.paklog.inventory.application.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
+/**
+ * Request DTO for creating stock adjustments
+ */
 public class CreateAdjustmentRequest {
-    @NotBlank
     private String sku;
-    @NotNull
-    private Integer quantityChange; // Can be positive or negative
-    @NotBlank
+    private int quantityChange;
     private String reasonCode;
     private String comment;
 
-    // Getters and Setters (required for JSON deserialization)
+    public CreateAdjustmentRequest() {
+    }
+
+    public CreateAdjustmentRequest(String sku, int quantityChange, String reasonCode, String comment) {
+        this.sku = sku;
+        this.quantityChange = quantityChange;
+        this.reasonCode = reasonCode;
+        this.comment = comment;
+    }
+
     public String getSku() {
         return sku;
     }
@@ -22,11 +27,11 @@ public class CreateAdjustmentRequest {
         this.sku = sku;
     }
 
-    public Integer getQuantityChange() {
+    public int getQuantityChange() {
         return quantityChange;
     }
 
-    public void setQuantityChange(Integer quantityChange) {
+    public void setQuantityChange(int quantityChange) {
         this.quantityChange = quantityChange;
     }
 

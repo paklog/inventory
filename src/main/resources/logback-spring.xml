@@ -16,7 +16,12 @@
                 <loggerName/>
                 <message/>
                 <stackTrace/>
-                <mdc/>
+                <mdc>
+                    <!-- Include trace and span IDs from OpenTelemetry -->
+                    <includeMdcKeyName>traceId</includeMdcKeyName>
+                    <includeMdcKeyName>spanId</includeMdcKeyName>
+                    <includeMdcKeyName>correlationId</includeMdcKeyName>
+                </mdc>
             </providers>
         </encoder>
     </appender>

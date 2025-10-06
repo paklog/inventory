@@ -79,48 +79,6 @@ public class StockLocationDocument {
     }
 }
 
-class LocationDocument {
-    private String aisle;
-    private String shelf;
-    private String bin;
-
-    public static LocationDocument fromDomain(Location location) {
-        LocationDocument doc = new LocationDocument();
-        doc.setAisle(location.getAisle());
-        doc.setShelf(location.getShelf());
-        doc.setBin(location.getBin());
-        return doc;
-    }
-
-    public Location toDomain() {
-        return new Location(this.aisle, this.shelf, this.bin);
-    }
-
-    public String getAisle() {
-        return aisle;
-    }
-
-    public void setAisle(String aisle) {
-        this.aisle = aisle;
-    }
-
-    public String getShelf() {
-        return shelf;
-    }
-
-    public void setShelf(String shelf) {
-        this.shelf = shelf;
-    }
-
-    public String getBin() {
-        return bin;
-    }
-
-    public void setBin(String bin) {
-        this.bin = bin;
-    }
-}
-
 class PhysicalReservationDocument {
     private String reservationId;
     private int quantity;

@@ -1,0 +1,38 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.abc-classification.changed",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ABC Classification Changed Event",
+  "description": "Published when SKU ABC classification changes, affecting inventory policies and cycle count frequencies",
+  "type": "object",
+  "required": ["sku", "newClass", "criteria", "reason"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "previousClass": {
+      "type": "string",
+      "description": "Previous ABC class (null for initial classification)",
+      "enum": ["A", "B", "C", null],
+      "example": "B"
+    },
+    "newClass": {
+      "type": "string",
+      "description": "New ABC class",
+      "enum": ["A", "B", "C"],
+      "example": "A"
+    },
+    "criteria": {
+      "type": "string",
+      "description": "Classification criteria used",
+      "enum": ["VALUE_BASED", "VELOCITY_BASED", "CRITICALITY_BASED", "COMBINED"],
+      "example": "COMBINED"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for classification change",
+      "example": "Annual reclassification based on sales velocity"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.kit.disassembled",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kit Disassembled Event",
+  "description": "Published when kits are disassembled back into component SKUs",
+  "type": "object",
+  "required": ["disassemblyOrderId", "kitSku", "kitQuantity", "componentsRecovered", "disassemblyLocation", "completedBy"],
+  "properties": {
+    "disassemblyOrderId": {
+      "type": "string",
+      "description": "Unique identifier for the disassembly order",
+      "example": "DSM-2024-001"
+    },
+    "kitSku": {
+      "type": "string",
+      "description": "Kit SKU being disassembled",
+      "example": "KIT-LAPTOP-001"
+    },
+    "kitQuantity": {
+      "type": "integer",
+      "description": "Quantity of kits disassembled",
+      "minimum": 1,
+      "example": 5
+    },
+    "componentsRecovered": {
+      "type": "object",
+      "description": "Map of component SKUs to quantities recovered",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "example": {
+        "SKU-SCREEN": 5,
+        "SKU-KEYBOARD": 5,
+        "SKU-MOTHERBOARD": 4
+      }
+    },
+    "disassemblyLocation": {
+      "type": "string",
+      "description": "Location where disassembly occurred",
+      "example": "WH01-ASSEMBLY-01-01-A"
+    },
+    "completedBy": {
+      "type": "string",
+      "description": "User who completed the disassembly",
+      "example": "assembly.operator@paklog.com"
+    }
+  }
+}

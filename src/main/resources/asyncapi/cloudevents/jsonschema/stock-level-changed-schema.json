@@ -1,0 +1,57 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.product-stock.level-changed",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stock Level Changed Event",
+  "description": "Published when product stock levels change due to receipts, adjustments, allocations, or picks",
+  "type": "object",
+  "required": ["sku", "previousQuantityOnHand", "newQuantityOnHand", "changeReason"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "previousQuantityOnHand": {
+      "type": "integer",
+      "description": "Quantity on hand before the change",
+      "minimum": 0,
+      "example": 100
+    },
+    "previousQuantityAllocated": {
+      "type": "integer",
+      "description": "Allocated quantity before the change",
+      "minimum": 0,
+      "example": 20
+    },
+    "previousAvailableToPromise": {
+      "type": "integer",
+      "description": "Available to Promise before the change",
+      "minimum": 0,
+      "example": 80
+    },
+    "newQuantityOnHand": {
+      "type": "integer",
+      "description": "Quantity on hand after the change",
+      "minimum": 0,
+      "example": 150
+    },
+    "newQuantityAllocated": {
+      "type": "integer",
+      "description": "Allocated quantity after the change",
+      "minimum": 0,
+      "example": 30
+    },
+    "newAvailableToPromise": {
+      "type": "integer",
+      "description": "Available to Promise after the change",
+      "minimum": 0,
+      "example": 120
+    },
+    "changeReason": {
+      "type": "string",
+      "description": "Reason for the stock level change",
+      "enum": ["RECEIPT", "ADJUSTMENT", "ALLOCATION", "PICK", "RETURN", "TRANSFER", "CYCLE_COUNT"],
+      "example": "RECEIPT"
+    }
+  }
+}

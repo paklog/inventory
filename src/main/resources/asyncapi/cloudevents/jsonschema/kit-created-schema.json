@@ -1,0 +1,54 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.kit.created",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kit Created Event",
+  "description": "Published when a new kit definition is created in the system",
+  "type": "object",
+  "required": ["kitSku", "kitName", "kitType", "components", "createdBy"],
+  "properties": {
+    "kitSku": {
+      "type": "string",
+      "description": "Unique SKU for the kit",
+      "example": "KIT-LAPTOP-001"
+    },
+    "kitName": {
+      "type": "string",
+      "description": "Descriptive name of the kit",
+      "example": "Standard Laptop Bundle"
+    },
+    "kitType": {
+      "type": "string",
+      "description": "Type of kit",
+      "enum": ["PHYSICAL", "VIRTUAL", "CONFIGURABLE"],
+      "example": "PHYSICAL"
+    },
+    "components": {
+      "type": "array",
+      "description": "List of component SKUs and quantities",
+      "items": {
+        "type": "object",
+        "required": ["componentSku", "quantity"],
+        "properties": {
+          "componentSku": {
+            "type": "string",
+            "example": "SKU-SCREEN"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "isOptional": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "User who created the kit",
+      "example": "product.manager@paklog.com"
+    }
+  }
+}

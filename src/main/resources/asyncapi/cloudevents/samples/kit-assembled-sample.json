@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "dd0e8400-e29b-41d4-a716-446655440008",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.kit.assembled",
+  "datacontenttype": "application/json",
+  "subject": "KIT-LAPTOP-001",
+  "time": "2025-10-05T17:30:00Z",
+  "data": {
+    "assemblyOrderId": "ASM-2024-001",
+    "kitSku": "KIT-LAPTOP-001",
+    "kitQuantityPlanned": 10,
+    "kitQuantityProduced": 9,
+    "componentsConsumed": {
+      "SKU-SCREEN": 9,
+      "SKU-KEYBOARD": 9,
+      "SKU-MOTHERBOARD": 9
+    },
+    "assemblyLocation": "WH01-ASSEMBLY-01-01-A",
+    "completedBy": "assembly.operator@paklog.com"
+  }
+}

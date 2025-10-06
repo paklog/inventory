@@ -2,59 +2,65 @@ package com.paklog.inventory.infrastructure.messaging;
 
 import com.paklog.inventory.application.port.EventPublisherPort;
 import com.paklog.inventory.domain.event.DomainEvent;
-import com.fasterxml.jackson.databind.ObjectMapper; // Added ObjectMapper import
+import com.paklog.inventory.infrastructure.observability.InventoryMetrics;
 import io.cloudevents.CloudEvent;
-import io.cloudevents.core.builder.CloudEventBuilder;
-import io.cloudevents.core.data.PojoCloudEventData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.Map;
-
+/**
+ * Publishes domain events as CloudEvents to Kafka.
+ * Validates events against JSON schemas before publishing.
+ */
 @Component
 public class CloudEventPublisher implements EventPublisherPort {
 
-    private static final String INVENTORY_SERVICE_SOURCE = "/fulfillment/inventory-service";
-    private static final String STOCK_LEVEL_CHANGED_TOPIC = "fulfillment.inventory.v1.events";
+    private static final Logger log = LoggerFactory.getLogger(CloudEventPublisher.class);
+    private static final String INVENTORY_EVENTS_TOPIC = "fulfillment.inventory.v1.events";
 
     private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
-    private final ObjectMapper objectMapper; // Added ObjectMapper
+    private final CloudEventFactory cloudEventFactory;
+    private final CloudEventSchemaValidator schemaValidator;
+    private final InventoryMetrics metrics;
 
-    public CloudEventPublisher(KafkaTemplate<String, CloudEvent> kafkaTemplate, ObjectMapper objectMapper) { // Added ObjectMapper to constructor
+    public CloudEventPublisher(
+            KafkaTemplate<String, CloudEvent> kafkaTemplate,
+            CloudEventFactory cloudEventFactory,
+            CloudEventSchemaValidator schemaValidator,
+            InventoryMetrics metrics) {
         this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper; // Initialize ObjectMapper
+        this.cloudEventFactory = cloudEventFactory;
+        this.schemaValidator = schemaValidator;
+        this.metrics = metrics;
     }
 
     @Override
     public void publish(DomainEvent domainEvent) {
-        CloudEvent cloudEvent = buildCloudEvent(domainEvent);
-        kafkaTemplate.send(STOCK_LEVEL_CHANGED_TOPIC, cloudEvent.getSubject(), cloudEvent);
-    }
-
-    private CloudEvent buildCloudEvent(DomainEvent domainEvent) {
-        // Use the specific event type from the domain event
-        String eventType = domainEvent.getEventType();
-        String subject = domainEvent.getAggregateId(); // For ProductStock, aggregateId is SKU
-
-        // Convert domain event data to a CloudEventData payload
-        // Use ObjectMapper to convert Map to byte[]
         try {
-            byte[] dataBytes = objectMapper.writeValueAsBytes(domainEvent.getEventData());
-            PojoCloudEventData<byte[]> data = PojoCloudEventData.wrap(dataBytes, bytes -> bytes);
+            // Step 1: Validate event data against JSON schema
+            schemaValidator.validate(domainEvent);
 
-            return CloudEventBuilder.v1()
-                    .withId(domainEvent.getEventId())
-                    .withSource(URI.create(INVENTORY_SERVICE_SOURCE))
-                    .withType(eventType)
-                    .withTime(OffsetDateTime.of(domainEvent.getOccurredOn(), ZoneOffset.UTC))
-                    .withSubject(subject)
-                    .withData("application/json", data)
-                    .build();
+            // Step 2: Create CloudEvent
+            CloudEvent cloudEvent = cloudEventFactory.create(domainEvent);
+
+            // Step 3: Publish to Kafka
+            kafkaTemplate.send(INVENTORY_EVENTS_TOPIC, cloudEvent.getSubject(), cloudEvent);
+
+            // Step 4: Record metrics
+            metrics.recordCloudEventPublished();
+
+            log.info("Published CloudEvent: type={}, subject={}, id={}",
+                    cloudEvent.getType(), cloudEvent.getSubject(), cloudEvent.getId());
+
+        } catch (CloudEventSchemaValidator.CloudEventValidationException e) {
+            metrics.recordCloudEventFailed();
+            log.error("CloudEvent validation failed: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize domain event data to CloudEventData", e);
+            metrics.recordCloudEventFailed();
+            log.error("Failed to publish CloudEvent for type: {}", domainEvent.getEventType(), e);
+            throw new RuntimeException("Failed to publish CloudEvent", e);
         }
     }
 }

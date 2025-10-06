@@ -1,0 +1,19 @@
+{
+  "specversion": "1.0",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.product-stock.level-changed",
+  "datacontenttype": "application/json",
+  "subject": "SKU-12345",
+  "time": "2025-10-05T14:30:00Z",
+  "data": {
+    "sku": "SKU-12345",
+    "previousQuantityOnHand": 100,
+    "previousQuantityAllocated": 20,
+    "previousAvailableToPromise": 80,
+    "newQuantityOnHand": 150,
+    "newQuantityAllocated": 30,
+    "newAvailableToPromise": 120,
+    "changeReason": "RECEIPT"
+  }
+}

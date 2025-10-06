@@ -1,0 +1,42 @@
+{
+  "$id": "com.paklog.inventory.fulfillment.v1.inventory-hold.placed",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Inventory Hold Placed Event",
+  "description": "Published when inventory is placed on hold for quality, credit, or administrative reasons",
+  "type": "object",
+  "required": ["sku", "holdId", "holdType", "quantityOnHold", "reason"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier",
+      "example": "SKU-12345"
+    },
+    "holdId": {
+      "type": "string",
+      "description": "Unique identifier for the hold",
+      "example": "HOLD-2024-001"
+    },
+    "holdType": {
+      "type": "string",
+      "description": "Type of inventory hold",
+      "enum": ["QUALITY_HOLD", "CREDIT_HOLD", "ADMINISTRATIVE_HOLD", "REGULATORY_HOLD"],
+      "example": "QUALITY_HOLD"
+    },
+    "quantityOnHold": {
+      "type": "integer",
+      "description": "Quantity placed on hold",
+      "minimum": 1,
+      "example": 50
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for placing the hold",
+      "example": "Quality inspection pending"
+    },
+    "lotNumber": {
+      "type": "string",
+      "description": "Optional lot number if hold is lot-specific",
+      "example": "LOT-2024-Q1-001"
+    }
+  }
+}

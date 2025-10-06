@@ -4,8 +4,10 @@ import com.paklog.inventory.domain.model.OutboxEvent;
 import com.paklog.inventory.domain.repository.OutboxRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class OutboxRepositoryImpl implements OutboxRepository {
@@ -24,6 +26,16 @@ public class OutboxRepositoryImpl implements OutboxRepository {
     @Override
     public List<OutboxEvent> findByProcessedFalse() {
         return springRepository.findByProcessedFalseOrderByCreatedAtAsc();
+    }
+
+    @Override
+    public List<OutboxEvent> findEventsBetween(LocalDateTime startTime, LocalDateTime endTime) {
+        return springRepository.findAll().stream()
+            .filter(event -> {
+                LocalDateTime eventTime = event.getCreatedAt();
+                return !eventTime.isBefore(startTime) && !eventTime.isAfter(endTime);
+            })
+            .collect(Collectors.toList());
     }
 
     @Override

@@ -1,0 +1,32 @@
+{
+  "specversion": "1.0",
+  "id": "ff0e8400-e29b-41d4-a716-446655440010",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.kit.created",
+  "datacontenttype": "application/json",
+  "subject": "KIT-LAPTOP-001",
+  "time": "2025-10-05T09:00:00Z",
+  "data": {
+    "kitSku": "KIT-LAPTOP-001",
+    "kitName": "Standard Laptop Bundle",
+    "kitType": "PHYSICAL",
+    "components": [
+      {
+        "componentSku": "SKU-SCREEN",
+        "quantity": 1,
+        "isOptional": false
+      },
+      {
+        "componentSku": "SKU-KEYBOARD",
+        "quantity": 1,
+        "isOptional": false
+      },
+      {
+        "componentSku": "SKU-MOTHERBOARD",
+        "quantity": 1,
+        "isOptional": false
+      }
+    ],
+    "createdBy": "product.manager@paklog.com"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "ee0e8400-e29b-41d4-a716-446655440009",
+  "source": "/fulfillment/inventory-service",
+  "type": "com.paklog.inventory.fulfillment.v1.kit.disassembled",
+  "datacontenttype": "application/json",
+  "subject": "KIT-LAPTOP-001",
+  "time": "2025-10-05T18:00:00Z",
+  "data": {
+    "disassemblyOrderId": "DSM-2024-001",
+    "kitSku": "KIT-LAPTOP-001",
+    "kitQuantity": 5,
+    "componentsRecovered": {
+      "SKU-SCREEN": 5,
+      "SKU-KEYBOARD": 5,
+      "SKU-MOTHERBOARD": 4
+    },
+    "disassemblyLocation": "WH01-ASSEMBLY-01-01-A",
+    "completedBy": "assembly.operator@paklog.com"
+  }
+}

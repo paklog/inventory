@@ -8,6 +8,7 @@ import java.util.Optional;
 public interface ProductStockRepository {
     Optional<ProductStock> findBySku(String sku);
     ProductStock save(ProductStock productStock);
+    List<ProductStock> saveAll(Iterable<ProductStock> productStocks);
     List<ProductStock> findAll();
     List<String> findAllSkus();
     void deleteAll();
