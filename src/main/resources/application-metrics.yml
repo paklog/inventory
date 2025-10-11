@@ -18,6 +18,9 @@ management:
       prometheus:
         enabled: true
         step: PT30S
+    tags:
+      application: ${spring.application.name:inventory}
+      environment: dev
     distribution:
       percentiles-histogram:
         "[inventory.operation.duration]": true
@@ -27,6 +30,14 @@ management:
         "[inventory.operation.duration]": 0.5, 0.95, 0.99
         "[inventory.query.duration]": 0.5, 0.95, 0.99
         "[inventory.event.processing.duration]": 0.5, 0.95, 0.99
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+  loki:
+    url: http://localhost:3100
 
 # Inventory-specific metrics configuration
 inventory:

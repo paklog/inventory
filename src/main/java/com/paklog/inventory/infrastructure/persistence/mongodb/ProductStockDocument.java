@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @Document(collection = "product_stocks")
 @CompoundIndexes({
-    @CompoundIndex(name = "sku_idx", def = "{'sku': 1}", unique = true),
     @CompoundIndex(name = "abc_class_idx", def = "{'abcClassification.abcClass': 1}"),
     @CompoundIndex(name = "stock_status_idx", def = "{'stockByStatus.status': 1}"),
     @CompoundIndex(name = "valuation_method_idx", def = "{'valuation.valuationMethod': 1}")

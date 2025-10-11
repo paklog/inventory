@@ -44,9 +44,8 @@ public class MongoIndexConfiguration {
     private void createProductStockIndexes() {
         IndexOperations indexOps = mongoTemplate.indexOps("product_stocks");
 
-        // Primary key - already exists via @Id
-        // SKU is the primary identifier - ensure unique index
-        indexOps.ensureIndex(new Index().on("sku", Sort.Direction.ASC).unique());
+        // Note: SKU is the @Id field, so it's already indexed as _id (unique by default)
+        // No need to create additional index on sku
 
         // ABC Classification queries
         indexOps.ensureIndex(new Index()

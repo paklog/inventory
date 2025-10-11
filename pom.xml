@@ -24,6 +24,7 @@
         <bytebuddy.agent.path>${project.build.directory}/byte-buddy-agent.jar</bytebuddy.agent.path>
         <opentelemetry.version>1.44.1</opentelemetry.version>
         <micrometer-tracing.version>1.2.5</micrometer-tracing.version>
+        <loki-logback-appender.version>1.5.1</loki-logback-appender.version>
     </properties>
 
     <dependencies>
@@ -92,6 +93,13 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Loki Logging -->
+        <dependency>
+            <groupId>com.github.loki4j</groupId>
+            <artifactId>loki-logback-appender</artifactId>
+            <version>${loki-logback-appender.version}</version>
         </dependency>
 
         <!-- Caching -->
