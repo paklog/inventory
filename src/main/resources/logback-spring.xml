@@ -53,7 +53,7 @@
 
     <!-- Application specific logging -->
     <logger name="com.paklog" level="DEBUG"/>
-    <logger name="org.springframework.web" level="DEBUG"/>
+    <logger name="org.springframework.web" level="INFO"/>
     <logger name="org.springframework.kafka" level="INFO"/>
     <logger name="org.mongodb" level="INFO"/>
 </configuration>
