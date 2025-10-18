@@ -1,0 +1,40 @@
+title: Inventory Management Service Documentation
+description: Single source of truth for product stock levels with event-driven architecture
+theme: jekyll-theme-cayman
+baseurl: "/inventory"
+url: "https://paklog.github.io"
+
+# Navigation
+navigation:
+  - title: Home
+    url: /
+  - title: Architecture
+    url: /architecture/
+  - title: Domain Design
+    url: /domain-driven-design
+  - title: API Documentation
+    url: /api-documentation
+  - title: Developer Guide
+    url: /developer-onboarding-guide
+  - title: ADRs
+    url: /architecture/adrs/
+
+# GitHub
+github:
+  repository_url: https://github.com/paklog/inventory
+
+# Build settings
+markdown: kramdown
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: false
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
