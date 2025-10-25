@@ -116,6 +116,8 @@ public class AsyncMetricsService {
             metricsService.incrementStockLevelQuery(sku);
         } catch (Exception e) {
             log.error("Failed to record stock level query metrics for sku: {}", sku, e);
-        }
-    }
+        
+
+}
+}
 }

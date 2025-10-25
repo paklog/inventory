@@ -12,12 +12,12 @@ import java.util.Map;
  */
 public class StockStatusChangedEvent extends DomainEvent {
 
-    private final String sku;
-    private final StockStatus previousStatus;
-    private final StockStatus newStatus;
-    private final int quantity;
-    private final String reason;
-    private final String lotNumber; // Optional
+    private String sku;
+    private StockStatus previousStatus;
+    private StockStatus newStatus;
+    private int quantity;
+    private String reason;
+    private String lotNumber; // Optional
 
     public StockStatusChangedEvent(String sku, StockStatus previousStatus, StockStatus newStatus,
                                    int quantity, String reason, String lotNumber) {
@@ -77,5 +77,27 @@ public class StockStatusChangedEvent extends DomainEvent {
     // Alias for getOccurredOn
     public java.time.LocalDateTime getOccurredAt() {
         return getOccurredOn();
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private StockStatus previousStatus;
+        private StockStatus newStatus;
+        private int quantity;
+        private String reason;
+        private String lotNumber;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder previousStatus(final StockStatus previousStatus) { this.previousStatus = previousStatus; return this; }
+        public Builder newStatus(final StockStatus newStatus) { this.newStatus = newStatus; return this; }
+        public Builder quantity(final int quantity) { this.quantity = quantity; return this; }
+        public Builder reason(final String reason) { this.reason = reason; return this; }
+        public Builder lotNumber(final String lotNumber) { this.lotNumber = lotNumber; return this; }
+
+        public StockStatusChangedEvent build() {
+            return new StockStatusChangedEvent(sku, previousStatus, newStatus, quantity, reason, lotNumber);
+        }
     }
 }

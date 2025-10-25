@@ -90,6 +90,8 @@ public class OutboxEventPublisher {
         @Override
         public int hashCode() {
             return java.util.Objects.hash(super.hashCode(), eventType, eventData);
-        }
-    }
+        
+
+}
+}
 }

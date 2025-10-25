@@ -286,5 +286,7 @@ class InventoryControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(commandService, never()).adjustStock(anyString(), anyInt(), anyString(), anyString(), anyString());
-    }
+    
+}
+}
 }

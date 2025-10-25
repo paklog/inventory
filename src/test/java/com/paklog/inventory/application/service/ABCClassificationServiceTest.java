@@ -481,6 +481,8 @@ class ABCClassificationServiceTest {
             case A -> assertTrue(serviceLevel >= 95.0 && serviceLevel <= 99.0);
             case B -> assertTrue(serviceLevel >= 90.0 && serviceLevel <= 95.0);
             case C -> assertTrue(serviceLevel >= 85.0 && serviceLevel <= 90.0);
-        }
-    }
+        
+
+}
+}
 }

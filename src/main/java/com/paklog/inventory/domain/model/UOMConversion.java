@@ -33,6 +33,7 @@ public class UOMConversion {
         this.isReversible = isReversible;
     }
 
+
     /**
      * Create a one-way conversion (e.g., PALLET → EA only)
      */

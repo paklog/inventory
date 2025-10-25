@@ -40,9 +40,25 @@ public class Kit {
         this.kitType = kitType;
         this.allowPartialKit = allowPartialKit;
         this.createdAt = LocalDateTime.now();
-        this.lastModifiedAt = LocalDateTime.now();
         this.active = true;
     }
+
+    public Kit(
+        String kitSku,
+        String kitDescription,
+        List<KitComponent> components,
+        KitType kitType,
+        boolean allowPartialKit,
+        LocalDateTime createdAt
+    ) {
+        this.kitSku = kitSku;
+        this.kitDescription = kitDescription;
+        this.components = components;
+        this.kitType = kitType;
+        this.allowPartialKit = allowPartialKit;
+        this.createdAt = createdAt;
+    }
+
 
     /**
      * Create a new kit definition

@@ -196,6 +196,8 @@ public class SnapshotScheduler {
             logger.info("Snapshot cleanup job completed");
         } catch (Exception e) {
             logger.error("Snapshot cleanup job failed", e);
-        }
-    }
+        
+
+}
+}
 }

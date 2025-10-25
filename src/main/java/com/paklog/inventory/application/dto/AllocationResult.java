@@ -13,12 +13,14 @@ public class AllocationResult {
 
     private AllocationResult(String orderId, String sku, boolean success,
                             String errorMessage, Integer allocatedQuantity) {
-        this.orderId = orderId;
+this.orderId = orderId;
         this.sku = sku;
         this.success = success;
         this.errorMessage = errorMessage;
         this.allocatedQuantity = allocatedQuantity;
     }
+
+
 
     public static AllocationResult success(String orderId, String sku, int allocatedQuantity) {
         return new AllocationResult(orderId, sku, true, null, allocatedQuantity);

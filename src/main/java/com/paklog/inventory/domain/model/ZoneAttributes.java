@@ -18,7 +18,7 @@ public class ZoneAttributes {
     private ZoneAttributes(Boolean temperatureControlled, Double minTemperatureCelsius,
                           Double maxTemperatureCelsius, Boolean securityRequired,
                           Boolean hazmatCertified, Integer maxWeightKg, Integer priorityLevel) {
-        this.temperatureControlled = temperatureControlled;
+this.temperatureControlled = temperatureControlled;
         this.minTemperatureCelsius = minTemperatureCelsius;
         this.maxTemperatureCelsius = maxTemperatureCelsius;
         this.securityRequired = securityRequired;
@@ -26,6 +26,8 @@ public class ZoneAttributes {
         this.maxWeightKg = maxWeightKg;
         this.priorityLevel = priorityLevel;
     }
+
+
 
     public static ZoneAttributes defaults() {
         return new Builder()
@@ -162,6 +164,8 @@ public class ZoneAttributes {
             return new ZoneAttributes(temperatureControlled, minTemperatureCelsius,
                                      maxTemperatureCelsius, securityRequired, hazmatCertified,
                                      maxWeightKg, priorityLevel);
-        }
-    }
+        
+
+}
+}
 }

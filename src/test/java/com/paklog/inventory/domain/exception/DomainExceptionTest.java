@@ -54,6 +54,8 @@ class DomainExceptionTest {
 
         public TestDomainException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
+        
+
+}
+}
 }

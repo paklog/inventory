@@ -27,16 +27,12 @@ public class MongoBackupService {
     private static final Logger log = LoggerFactory.getLogger(MongoBackupService.class);
     private static final DateTimeFormatter BACKUP_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
-    @Value("${mongodb.backup.enabled:false}")
     private boolean backupEnabled;
 
-    @Value("${mongodb.backup.directory:/var/backups/inventory-mongodb}")
     private String backupDirectory;
 
-    @Value("${mongodb.backup.retention-days:30}")
     private int retentionDays;
 
-    @Value("${spring.data.mongodb.uri}")
     private String mongoUri;
 
     /**
@@ -221,6 +217,8 @@ public class MongoBackupService {
         } catch (IOException e) {
             log.error("Failed to list available backups", e);
             return List.of();
-        }
-    }
+        
+
+}
+}
 }

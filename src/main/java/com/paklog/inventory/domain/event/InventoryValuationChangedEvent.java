@@ -12,14 +12,14 @@ import java.util.Objects;
  */
 public class InventoryValuationChangedEvent extends DomainEvent {
 
-    private final String sku;
-    private final ValuationMethod valuationMethod;
-    private final BigDecimal previousUnitCost;
-    private final BigDecimal newUnitCost;
-    private final BigDecimal previousTotalValue;
-    private final BigDecimal newTotalValue;
-    private final int quantity;
-    private final String reason;
+    private String sku;
+    private ValuationMethod valuationMethod;
+    private BigDecimal previousUnitCost;
+    private BigDecimal newUnitCost;
+    private BigDecimal previousTotalValue;
+    private BigDecimal newTotalValue;
+    private int quantity;
+    private String reason;
 
     public InventoryValuationChangedEvent(String sku,
                                          ValuationMethod valuationMethod,
@@ -124,5 +124,31 @@ public class InventoryValuationChangedEvent extends DomainEvent {
                 "unitCost: %s->%s, totalValue: %s->%s, reason='%s'}",
                 sku, valuationMethod, previousUnitCost, newUnitCost,
                 previousTotalValue, newTotalValue, reason);
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private ValuationMethod valuationMethod;
+        private BigDecimal previousUnitCost;
+        private BigDecimal newUnitCost;
+        private BigDecimal previousTotalValue;
+        private BigDecimal newTotalValue;
+        private int quantity;
+        private String reason;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder valuationMethod(final ValuationMethod valuationMethod) { this.valuationMethod = valuationMethod; return this; }
+        public Builder previousUnitCost(final BigDecimal previousUnitCost) { this.previousUnitCost = previousUnitCost; return this; }
+        public Builder newUnitCost(final BigDecimal newUnitCost) { this.newUnitCost = newUnitCost; return this; }
+        public Builder previousTotalValue(final BigDecimal previousTotalValue) { this.previousTotalValue = previousTotalValue; return this; }
+        public Builder newTotalValue(final BigDecimal newTotalValue) { this.newTotalValue = newTotalValue; return this; }
+        public Builder quantity(final int quantity) { this.quantity = quantity; return this; }
+        public Builder reason(final String reason) { this.reason = reason; return this; }
+
+        public InventoryValuationChangedEvent build() {
+            return new InventoryValuationChangedEvent(sku, valuationMethod, previousUnitCost, newUnitCost, previousTotalValue, newTotalValue, quantity, reason);
+        }
     }
 }

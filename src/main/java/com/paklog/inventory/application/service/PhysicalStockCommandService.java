@@ -92,6 +92,8 @@ public class PhysicalStockCommandService {
         if (!outboxEvents.isEmpty()) {
             outboxRepository.saveAll(outboxEvents);
             stockLocation.markEventsAsCommitted();
-        }
-    }
+        
+
+}
+}
 }

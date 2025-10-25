@@ -14,13 +14,13 @@ import java.util.Objects;
  */
 public class StockTransferCompletedEvent extends DomainEvent {
 
-    private final String transferId;
-    private final String sku;
-    private final Location sourceLocation;
-    private final Location destinationLocation;
-    private final int quantityTransferred;
-    private final int actualQuantityReceived;
-    private final boolean hasShrinkage;
+    private String transferId;
+    private String sku;
+    private Location sourceLocation;
+    private Location destinationLocation;
+    private int quantityTransferred;
+    private int actualQuantityReceived;
+    private boolean hasShrinkage;
 
     public StockTransferCompletedEvent(String transferId, String sku,
                                       Location sourceLocation, Location destinationLocation,
@@ -110,5 +110,29 @@ public class StockTransferCompletedEvent extends DomainEvent {
                 transferId, sku, sourceLocation.toLocationCode(),
                 destinationLocation.toLocationCode(), quantityTransferred,
                 actualQuantityReceived, hasShrinkage);
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String transferId;
+        private String sku;
+        private Location sourceLocation;
+        private Location destinationLocation;
+        private int quantityTransferred;
+        private int actualQuantityReceived;
+        private boolean hasShrinkage;
+
+        public Builder transferId(final String transferId) { this.transferId = transferId; return this; }
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder sourceLocation(final Location sourceLocation) { this.sourceLocation = sourceLocation; return this; }
+        public Builder destinationLocation(final Location destinationLocation) { this.destinationLocation = destinationLocation; return this; }
+        public Builder quantityTransferred(final int quantityTransferred) { this.quantityTransferred = quantityTransferred; return this; }
+        public Builder actualQuantityReceived(final int actualQuantityReceived) { this.actualQuantityReceived = actualQuantityReceived; return this; }
+        public Builder hasShrinkage(final boolean hasShrinkage) { this.hasShrinkage = hasShrinkage; return this; }
+
+        public StockTransferCompletedEvent build() {
+            return new StockTransferCompletedEvent(transferId, sku, sourceLocation, destinationLocation, quantityTransferred, actualQuantityReceived);
+        }
     }
 }

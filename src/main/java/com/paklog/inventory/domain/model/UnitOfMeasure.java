@@ -25,11 +25,12 @@ public class UnitOfMeasure {
             throw new IllegalArgumentException("Decimal precision must be between 0 and 6");
         }
 
-        this.code = code.toUpperCase();
+        this.code = code;
         this.description = description;
         this.type = type;
         this.decimalPrecision = decimalPrecision;
     }
+
 
     /**
      * Create a discrete UOM (countable units like EA, CASE, PALLET)

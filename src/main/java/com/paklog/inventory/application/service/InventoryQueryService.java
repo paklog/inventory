@@ -94,6 +94,8 @@ public class InventoryQueryService {
         } catch (Exception e) {
             metricsService.stopQueryOperation(sample, "health_metrics_error");
             throw e;
-        }
-    }
+        
+
+}
+}
 }

@@ -21,25 +21,18 @@ public class MongoConnectionPoolConfiguration extends AbstractMongoClientConfigu
 
     private static final Logger log = LoggerFactory.getLogger(MongoConnectionPoolConfiguration.class);
 
-    @Value("${spring.data.mongodb.uri}")
     private String mongoUri;
 
-    @Value("${spring.data.mongodb.pool.min-size:10}")
     private int minConnectionPoolSize;
 
-    @Value("${spring.data.mongodb.pool.max-size:100}")
     private int maxConnectionPoolSize;
 
-    @Value("${spring.data.mongodb.pool.max-wait-time-ms:5000}")
     private long maxWaitTimeMs;
 
-    @Value("${spring.data.mongodb.pool.max-connection-idle-time-ms:60000}")
     private long maxConnectionIdleTimeMs;
 
-    @Value("${spring.data.mongodb.pool.max-connection-life-time-ms:1800000}")
     private long maxConnectionLifeTimeMs;
 
-    @Value("${spring.data.mongodb.pool.maintenance-frequency-ms:10000}")
     private long maintenanceFrequencyMs;
 
     @Override

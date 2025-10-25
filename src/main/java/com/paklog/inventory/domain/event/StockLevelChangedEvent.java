@@ -8,10 +8,10 @@ import java.util.Map;
 
 public class StockLevelChangedEvent extends DomainEvent {
 
-    private final String sku;
-    private final StockLevel previousStockLevel;
-    private final StockLevel newStockLevel;
-    private final String changeReason;
+    private String sku;
+    private StockLevel previousStockLevel;
+    private StockLevel newStockLevel;
+    private String changeReason;
 
     public StockLevelChangedEvent(String sku, StockLevel previousStockLevel, StockLevel newStockLevel, String changeReason) {
         super(sku); // Aggregate ID is the SKU
@@ -59,5 +59,23 @@ public class StockLevelChangedEvent extends DomainEvent {
         data.put("newAvailableToPromise", newStockLevel.getAvailableToPromise());
         data.put("changeReason", changeReason);
         return Collections.unmodifiableMap(data);
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private StockLevel previousStockLevel;
+        private StockLevel newStockLevel;
+        private String changeReason;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder previousStockLevel(final StockLevel previousStockLevel) { this.previousStockLevel = previousStockLevel; return this; }
+        public Builder newStockLevel(final StockLevel newStockLevel) { this.newStockLevel = newStockLevel; return this; }
+        public Builder changeReason(final String changeReason) { this.changeReason = changeReason; return this; }
+
+        public StockLevelChangedEvent build() {
+            return new StockLevelChangedEvent(sku, previousStockLevel, newStockLevel, changeReason);
+        }
     }
 }

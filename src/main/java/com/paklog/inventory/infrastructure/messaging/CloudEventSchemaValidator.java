@@ -152,6 +152,8 @@ public class CloudEventSchemaValidator {
 
         public CloudEventValidationException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
+        
+
+}
+}
 }

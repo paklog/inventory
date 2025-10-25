@@ -8,9 +8,9 @@ public class StockAddedToLocation extends DomainEvent {
 
     private static final String EVENT_TYPE = "paklog.inventory.stock-added-to-location.v1";
 
-    private final String sku;
-    private final Location location;
-    private final int quantity;
+    private String sku;
+    private Location location;
+    private int quantity;
 
     public StockAddedToLocation() {
         super();
@@ -50,5 +50,21 @@ public class StockAddedToLocation extends DomainEvent {
 
     public int getQuantity() {
         return quantity;
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private Location location;
+        private int quantity;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder location(final Location location) { this.location = location; return this; }
+        public Builder quantity(final int quantity) { this.quantity = quantity; return this; }
+
+        public StockAddedToLocation build() {
+            return new StockAddedToLocation(sku, location, quantity);
+        }
     }
 }

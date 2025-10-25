@@ -20,7 +20,7 @@ public class InventoryHoldSnapshot {
     private InventoryHoldSnapshot(String holdId, String holdType, int quantity, String reason,
                                  String placedBy, LocalDateTime placedAt, LocalDateTime expiresAt,
                                  boolean active) {
-        this.holdId = holdId;
+this.holdId = holdId;
         this.holdType = holdType;
         this.quantity = quantity;
         this.reason = reason;
@@ -29,6 +29,8 @@ public class InventoryHoldSnapshot {
         this.expiresAt = expiresAt;
         this.active = active;
     }
+
+
 
     public static InventoryHoldSnapshot of(String holdId, String holdType, int quantity,
                                           String reason, String placedBy, LocalDateTime placedAt,

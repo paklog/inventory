@@ -87,4 +87,28 @@ public class OutboxEvent {
     public LocalDateTime getProcessedAt() {
         return processedAt;
     }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String id;
+        private String aggregateId;
+        private String eventType;
+        private String eventData;
+        private LocalDateTime createdAt;
+        private boolean processed;
+        private LocalDateTime processedAt;
+
+        public Builder id(String id) { this.id = id; return this; }
+        public Builder aggregateId(String aggregateId) { this.aggregateId = aggregateId; return this; }
+        public Builder eventType(String eventType) { this.eventType = eventType; return this; }
+        public Builder eventData(String eventData) { this.eventData = eventData; return this; }
+        public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public Builder processed(boolean processed) { this.processed = processed; return this; }
+        public Builder processedAt(LocalDateTime processedAt) { this.processedAt = processedAt; return this; }
+
+        public OutboxEvent build() {
+            return new OutboxEvent(id, aggregateId, eventType, eventData, createdAt, processed, processedAt);
+        }
+    }
 }

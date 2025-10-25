@@ -92,6 +92,8 @@ public class OptimizedInventoryLedgerRepository {
 
         public void setTotalQuantity(int totalQuantity) {
             this.totalQuantity = totalQuantity;
-        }
-    }
+        
+
+}
+}
 }

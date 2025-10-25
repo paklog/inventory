@@ -12,11 +12,11 @@ import java.util.Objects;
  */
 public class ABCClassificationChangedEvent extends DomainEvent {
 
-    private final String sku;
-    private final ABCClass previousClass;
-    private final ABCClass newClass;
-    private final ABCCriteria criteria;
-    private final String reason;
+    private String sku;
+    private ABCClass previousClass;
+    private ABCClass newClass;
+    private ABCCriteria criteria;
+    private String reason;
 
     public ABCClassificationChangedEvent(String sku,
                                         ABCClass previousClass,
@@ -112,4 +112,27 @@ public class ABCClassificationChangedEvent extends DomainEvent {
         return String.format("ABCClassificationChangedEvent{sku='%s', %s->%s, criteria=%s, reason='%s'}",
                 sku, previousClass, newClass, criteria, reason);
     }
+
+
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private ABCClass previousClass;
+        private ABCClass newClass;
+        private ABCCriteria criteria;
+        private String reason;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder previousClass(final ABCClass previousClass) { this.previousClass = previousClass; return this; }
+        public Builder newClass(final ABCClass newClass) { this.newClass = newClass; return this; }
+        public Builder criteria(final ABCCriteria criteria) { this.criteria = criteria; return this; }
+        public Builder reason(final String reason) { this.reason = reason; return this; }
+
+        public ABCClassificationChangedEvent build() {
+            return new ABCClassificationChangedEvent(sku, previousClass, newClass, criteria, reason);
+        }
+    }
 }
+

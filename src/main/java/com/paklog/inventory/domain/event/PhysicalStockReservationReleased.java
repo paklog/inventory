@@ -8,9 +8,9 @@ public class PhysicalStockReservationReleased extends DomainEvent {
 
     private static final String EVENT_TYPE = "paklog.inventory.physical-stock-reservation-released.v1";
 
-    private final String sku;
-    private final Location location;
-    private final String reservationId;
+    private String sku;
+    private Location location;
+    private String reservationId;
 
     public PhysicalStockReservationReleased(String sku, Location location, String reservationId) {
         super(sku);
@@ -43,5 +43,21 @@ public class PhysicalStockReservationReleased extends DomainEvent {
 
     public String getReservationId() {
         return reservationId;
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private Location location;
+        private String reservationId;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder location(final Location location) { this.location = location; return this; }
+        public Builder reservationId(final String reservationId) { this.reservationId = reservationId; return this; }
+
+        public PhysicalStockReservationReleased build() {
+            return new PhysicalStockReservationReleased(sku, location, reservationId);
+        }
     }
 }
