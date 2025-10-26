@@ -11,6 +11,12 @@ import java.util.List;
 
 @Repository
 public interface InventoryLedgerSpringRepository extends MongoRepository<InventoryLedgerEntryDocument, String> {
+    List<InventoryLedgerEntryDocument> findBySku(String sku);
+
+    List<InventoryLedgerEntryDocument> findBySkuAndTimestampBetween(String sku, LocalDateTime start, LocalDateTime end);
+
+    List<InventoryLedgerEntryDocument> findByChangeType(String changeType);
+
     // Optimized with index hint for sku + changeType + timestamp compound index
     @Query(value = "{ 'sku': ?0, 'changeType': 'PICK', 'timestamp': { '$gte': ?1, '$lte': ?2 } }",
            fields = "{ 'sku': 1, 'quantityChange': 1, 'timestamp': 1 }")

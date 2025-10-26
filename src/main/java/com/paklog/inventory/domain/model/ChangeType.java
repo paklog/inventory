@@ -5,6 +5,7 @@ public enum ChangeType {
     DEALLOCATION,
     PICK,
     RECEIPT,
+    ADJUSTMENT,
     ADJUSTMENT_POSITIVE,
     ADJUSTMENT_NEGATIVE,
     CYCLE_COUNT

@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Document(collection = "outbox_events")
@@ -54,9 +55,61 @@ public class OutboxEvent {
         }
     }
 
+    public static OutboxEvent create(String eventType, String aggregateId, Map<String, Object> payload) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        try {
+            String eventData = objectMapper.writeValueAsString(payload);
+            return new OutboxEvent(
+                    UUID.randomUUID().toString(),
+                    aggregateId,
+                    eventType,
+                    eventData,
+                    LocalDateTime.now(),
+                    false,
+                    null
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize payload to JSON for outbox.", e);
+        }
+    }
+
+    public static OutboxEvent load(String id, String eventType, String aggregateId, Map<String, Object> payload,
+                                    LocalDateTime createdAt, boolean published, LocalDateTime publishedAt) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        try {
+            String eventData = objectMapper.writeValueAsString(payload);
+            return new OutboxEvent(
+                    id != null ? id : UUID.randomUUID().toString(),
+                    aggregateId,
+                    eventType,
+                    eventData,
+                    createdAt,
+                    published,
+                    publishedAt
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize payload to JSON for outbox.", e);
+        }
+    }
+
     public void markAsProcessed() {
         this.processed = true;
         this.processedAt = LocalDateTime.now();
+    }
+
+    // Alias methods for "published" terminology (used by tests)
+    public void markAsPublished() {
+        markAsProcessed();
+    }
+
+    public boolean isPublished() {
+        return isProcessed();
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return getProcessedAt();
     }
 
     // Getters
@@ -74,6 +127,16 @@ public class OutboxEvent {
 
     public String getEventData() {
         return eventData;
+    }
+
+    public Map<String, Object> getPayload() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        try {
+            return objectMapper.readValue(eventData, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize event data", e);
+        }
     }
 
     public LocalDateTime getCreatedAt() {
