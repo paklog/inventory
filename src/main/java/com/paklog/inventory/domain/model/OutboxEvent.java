@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Document(collection = "outbox_events")
@@ -38,6 +39,8 @@ public class OutboxEvent {
     public static OutboxEvent from(DomainEvent domainEvent) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules(); // Register modules for Java 8 Date/Time API
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
         try {
             String eventData = objectMapper.writeValueAsString(domainEvent.getEventData());
             return new OutboxEvent(
@@ -54,9 +57,65 @@ public class OutboxEvent {
         }
     }
 
+    public static OutboxEvent create(String eventType, String aggregateId, Map<String, Object> payload) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
+        try {
+            String eventData = objectMapper.writeValueAsString(payload);
+            return new OutboxEvent(
+                    UUID.randomUUID().toString(),
+                    aggregateId,
+                    eventType,
+                    eventData,
+                    LocalDateTime.now(),
+                    false,
+                    null
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize payload to JSON for outbox.", e);
+        }
+    }
+
+    public static OutboxEvent load(String id, String eventType, String aggregateId, Map<String, Object> payload,
+                                    LocalDateTime createdAt, boolean published, LocalDateTime publishedAt) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
+        try {
+            String eventData = objectMapper.writeValueAsString(payload);
+            return new OutboxEvent(
+                    id != null ? id : UUID.randomUUID().toString(),
+                    aggregateId,
+                    eventType,
+                    eventData,
+                    createdAt,
+                    published,
+                    publishedAt
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize payload to JSON for outbox.", e);
+        }
+    }
+
     public void markAsProcessed() {
         this.processed = true;
         this.processedAt = LocalDateTime.now();
+    }
+
+    // Alias methods for "published" terminology (used by tests)
+    public void markAsPublished() {
+        markAsProcessed();
+    }
+
+    public boolean isPublished() {
+        return isProcessed();
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return getProcessedAt();
     }
 
     // Getters
@@ -76,6 +135,18 @@ public class OutboxEvent {
         return eventData;
     }
 
+    public Map<String, Object> getPayload() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
+        try {
+            return objectMapper.readValue(eventData, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize event data", e);
+        }
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -86,5 +157,29 @@ public class OutboxEvent {
 
     public LocalDateTime getProcessedAt() {
         return processedAt;
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String id;
+        private String aggregateId;
+        private String eventType;
+        private String eventData;
+        private LocalDateTime createdAt;
+        private boolean processed;
+        private LocalDateTime processedAt;
+
+        public Builder id(String id) { this.id = id; return this; }
+        public Builder aggregateId(String aggregateId) { this.aggregateId = aggregateId; return this; }
+        public Builder eventType(String eventType) { this.eventType = eventType; return this; }
+        public Builder eventData(String eventData) { this.eventData = eventData; return this; }
+        public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public Builder processed(boolean processed) { this.processed = processed; return this; }
+        public Builder processedAt(LocalDateTime processedAt) { this.processedAt = processedAt; return this; }
+
+        public OutboxEvent build() {
+            return new OutboxEvent(id, aggregateId, eventType, eventData, createdAt, processed, processedAt);
+        }
     }
 }

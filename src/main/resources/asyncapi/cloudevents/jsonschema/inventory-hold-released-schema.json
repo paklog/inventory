@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.inventory-hold.released",
+  "$id": "https://paklog.com/schemas/inventory/v1/inventory-hold-released.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inventory Hold Released Event",
   "description": "Published when an inventory hold is released and stock becomes available for allocation again. This completes the hold lifecycle and returns the held quantity to the available-to-promise pool. Holds may be released after quality approval, credit clearance, administrative resolution, or regulatory compliance confirmation.",

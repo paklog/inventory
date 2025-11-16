@@ -1,28 +1,28 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.kit.disassembled",
+  "$id": "https://paklog.com/schemas/inventory/v1/kit-disassembled.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Kit Disassembled Event",
   "description": "Published when kits are disassembled back into component SKUs",
   "type": "object",
-  "required": ["disassemblyOrderId", "kitSku", "kitQuantity", "componentsRecovered", "disassemblyLocation", "completedBy"],
+  "required": ["disassembly_order_id", "kit_sku", "kit_quantity", "components_recovered", "disassembly_location", "completed_by"],
   "properties": {
-    "disassemblyOrderId": {
+    "disassembly_order_id": {
       "type": "string",
       "description": "Unique identifier for the disassembly order",
       "example": "DSM-2024-001"
     },
-    "kitSku": {
+    "kit_sku": {
       "type": "string",
       "description": "Kit SKU being disassembled",
       "example": "KIT-LAPTOP-001"
     },
-    "kitQuantity": {
+    "kit_quantity": {
       "type": "integer",
       "description": "Quantity of kits disassembled",
       "minimum": 1,
       "example": 5
     },
-    "componentsRecovered": {
+    "components_recovered": {
       "type": "object",
       "description": "Map of component SKUs to quantities recovered",
       "additionalProperties": {
@@ -34,12 +34,12 @@
         "SKU-MOTHERBOARD": 4
       }
     },
-    "disassemblyLocation": {
+    "disassembly_location": {
       "type": "string",
       "description": "Location where disassembly occurred",
       "example": "WH01-ASSEMBLY-01-01-A"
     },
-    "completedBy": {
+    "completed_by": {
       "type": "string",
       "description": "User who completed the disassembly",
       "example": "assembly.operator@paklog.com"

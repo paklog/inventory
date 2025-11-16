@@ -61,6 +61,26 @@ public class AssemblyOrder {
         this.actualQuantityProduced = 0;
     }
 
+    public AssemblyOrder(
+        String assemblyOrderId,
+        AssemblyType assemblyType,
+        String kitSku,
+        int kitQuantity,
+        List<ComponentAllocation> componentAllocations,
+        Location assemblyLocation,
+        String createdBy,
+        LocalDateTime createdAt
+    ) {
+        this.assemblyOrderId = assemblyOrderId;
+        this.assemblyType = assemblyType;
+        this.kitSku = kitSku;
+        this.kitQuantity = kitQuantity;
+        this.componentAllocations = componentAllocations;
+        this.assemblyLocation = assemblyLocation;
+        this.createdBy = createdBy;
+        this.createdAt = createdAt;
+    }
+
     /**
      * Create assembly order (components → kit)
      */

@@ -1,0 +1,13 @@
+apiVersion: v2
+name: inventory
+description: Inventory management service for product stock levels
+type: application
+version: 1.0.0
+appVersion: 1.0.0
+keywords:
+- paklog
+- warehouse
+- wms
+- microservices
+maintainers:
+- name: Paklog Team

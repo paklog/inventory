@@ -38,6 +38,8 @@ public class InventoryHealthIndicator implements HealthIndicator {
                     .withDetail("database", "mongodb")
                     .withDetail("status", "unavailable")
                     .build();
-        }
-    }
+        
+
+}
+}
 }

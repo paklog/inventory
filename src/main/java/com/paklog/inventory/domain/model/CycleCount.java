@@ -45,7 +45,7 @@ public class CycleCount {
                       String countedBy, String notes, Integer variance, BigDecimal varianceValue,
                       VarianceResolution resolution, String resolutionNotes,
                       String approvedBy, LocalDateTime approvedAt) {
-        this.countId = countId;
+this.countId = countId;
         this.sku = sku;
         this.location = location;
         this.countType = countType;
@@ -66,6 +66,8 @@ public class CycleCount {
         this.approvedBy = approvedBy;
         this.approvedAt = approvedAt;
     }
+
+
 
     public static CycleCount create(String sku, Location location, CountType countType,
                                    String assignedTo, LocalDateTime scheduledDate, int systemQuantity) {

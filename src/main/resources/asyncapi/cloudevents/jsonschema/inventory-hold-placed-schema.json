@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.inventory-hold.placed",
+  "$id": "https://paklog.com/schemas/inventory/v1/inventory-hold-placed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inventory Hold Placed Event",
   "description": "Published when inventory is placed on hold for quality, credit, administrative, or regulatory reasons. Holds prevent affected inventory from being allocated to orders until the hold is released. This supports quality control workflows, credit risk management, and compliance requirements. The held quantity is removed from the available-to-promise calculation.",

@@ -25,13 +25,15 @@ public class StockLevelResponse {
 
     @JsonProperty("available_to_promise")
     private int availableToPromise;
+    private String locationId;
 
     // Private constructor for factory method
-    private StockLevelResponse(String sku, int quantityOnHand, int quantityAllocated, int availableToPromise) {
+    private StockLevelResponse(String sku, int quantityOnHand, int quantityAllocated, int availableToPromise, String locationId) {
         this.sku = sku;
         this.quantityOnHand = quantityOnHand;
         this.quantityAllocated = quantityAllocated;
         this.availableToPromise = availableToPromise;
+        this.locationId = locationId;
     }
 
     /**
@@ -45,7 +47,8 @@ public class StockLevelResponse {
                 productStock.getSku(),
                 productStock.getQuantityOnHand(),
                 productStock.getQuantityAllocated(),
-                productStock.getAvailableToPromise()
+                productStock.getAvailableToPromise(),
+                productStock.getLocationId()
         );
     }
 
@@ -64,5 +67,9 @@ public class StockLevelResponse {
 
     public int getAvailableToPromise() {
         return availableToPromise;
+    }
+
+    public String getLocationId() {
+        return locationId;
     }
 }

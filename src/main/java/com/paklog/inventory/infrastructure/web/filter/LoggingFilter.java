@@ -23,6 +23,8 @@ public class LoggingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove(TRACE_ID);
-        }
-    }
+        
+
+}
+}
 }

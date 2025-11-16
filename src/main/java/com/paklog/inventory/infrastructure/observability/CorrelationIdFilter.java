@@ -56,6 +56,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         } finally {
             // Clean up MDC after request completes
             MDC.remove(CORRELATION_ID_MDC_KEY);
-        }
-    }
+        
+
+}
+}
 }

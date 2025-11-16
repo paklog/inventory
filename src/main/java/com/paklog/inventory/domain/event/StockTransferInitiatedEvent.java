@@ -14,13 +14,13 @@ import java.util.Objects;
  */
 public class StockTransferInitiatedEvent extends DomainEvent {
 
-    private final String transferId;
-    private final String sku;
-    private final Location sourceLocation;
-    private final Location destinationLocation;
-    private final int quantity;
-    private final String initiatedBy;
-    private final String reason;
+    private String transferId;
+    private String sku;
+    private Location sourceLocation;
+    private Location destinationLocation;
+    private int quantity;
+    private String initiatedBy;
+    private String reason;
 
     public StockTransferInitiatedEvent(String transferId, String sku,
                                       Location sourceLocation, Location destinationLocation,
@@ -105,5 +105,29 @@ public class StockTransferInitiatedEvent extends DomainEvent {
         return String.format("StockTransferInitiatedEvent{id='%s', sku='%s', %s->%s, qty=%d}",
                 transferId, sku, sourceLocation.toLocationCode(),
                 destinationLocation.toLocationCode(), quantity);
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String transferId;
+        private String sku;
+        private Location sourceLocation;
+        private Location destinationLocation;
+        private int quantity;
+        private String initiatedBy;
+        private String reason;
+
+        public Builder transferId(final String transferId) { this.transferId = transferId; return this; }
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder sourceLocation(final Location sourceLocation) { this.sourceLocation = sourceLocation; return this; }
+        public Builder destinationLocation(final Location destinationLocation) { this.destinationLocation = destinationLocation; return this; }
+        public Builder quantity(final int quantity) { this.quantity = quantity; return this; }
+        public Builder initiatedBy(final String initiatedBy) { this.initiatedBy = initiatedBy; return this; }
+        public Builder reason(final String reason) { this.reason = reason; return this; }
+
+        public StockTransferInitiatedEvent build() {
+            return new StockTransferInitiatedEvent(transferId, sku, sourceLocation, destinationLocation, quantity, initiatedBy, reason);
+        }
     }
 }

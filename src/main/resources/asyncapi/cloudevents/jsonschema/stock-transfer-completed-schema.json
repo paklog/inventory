@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.completed",
+  "$id": "https://paklog.com/schemas/inventory/v1/stock-transfer-completed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Transfer Completed Event",
   "description": "Published when a stock transfer between warehouse locations is completed and inventory has been received at the destination. This event marks the end of the transfer lifecycle, updating location-level inventory balances. The event includes shrinkage detection by comparing expected vs actual received quantities.",

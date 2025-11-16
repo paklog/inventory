@@ -46,6 +46,8 @@ public class InventoryEventConsumer {
             // Depending on the error, you might want to send to a Dead Letter Topic
             // For now, we'll let the message be retried by not acknowledging.
             // Or, if it's a permanent error, acknowledge and log.
-        }
-    }
+        
+
+}
+}
 }

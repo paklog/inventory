@@ -81,6 +81,8 @@ public class AsyncEventPublisher {
         } catch (Exception e) {
             log.error("Failed to publish event asynchronously: {}", event.getEventType(), e);
             return CompletableFuture.failedFuture(e);
-        }
-    }
+        
+
+}
+}
 }

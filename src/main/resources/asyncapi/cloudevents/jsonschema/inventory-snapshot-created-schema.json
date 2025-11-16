@@ -1,12 +1,12 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.inventory-snapshot.created",
+  "$id": "https://paklog.com/schemas/inventory/v1/inventory-snapshot-created.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inventory Snapshot Created Event",
   "description": "Published when a point-in-time inventory snapshot is created for reporting or auditing",
   "type": "object",
-  "required": ["snapshotId", "sku", "snapshotType", "snapshotReason", "quantityOnHand", "quantityAllocated", "createdBy"],
+  "required": ["snapshot_id", "sku", "snapshot_type", "snapshot_reason", "quantity_on_hand", "quantity_allocated", "created_by"],
   "properties": {
-    "snapshotId": {
+    "snapshot_id": {
       "type": "string",
       "description": "Unique identifier for the snapshot",
       "example": "SNAP-2024-Q1-001"
@@ -16,37 +16,37 @@
       "description": "Stock Keeping Unit identifier",
       "example": "SKU-12345"
     },
-    "snapshotType": {
+    "snapshot_type": {
       "type": "string",
       "description": "Type of snapshot",
       "enum": ["DAILY", "WEEKLY", "MONTHLY", "ANNUAL", "AD_HOC"],
       "example": "DAILY"
     },
-    "snapshotReason": {
+    "snapshot_reason": {
       "type": "string",
       "description": "Reason for creating snapshot",
       "enum": ["SCHEDULED", "CYCLE_COUNT", "AUDIT", "MONTH_END", "YEAR_END", "MANUAL"],
       "example": "SCHEDULED"
     },
-    "quantityOnHand": {
+    "quantity_on_hand": {
       "type": "integer",
       "description": "Quantity on hand at snapshot time",
       "minimum": 0,
       "example": 150
     },
-    "quantityAllocated": {
+    "quantity_allocated": {
       "type": "integer",
       "description": "Allocated quantity at snapshot time",
       "minimum": 0,
       "example": 30
     },
-    "quantityAvailable": {
+    "quantity_available": {
       "type": "integer",
       "description": "Available to promise at snapshot time",
       "minimum": 0,
       "example": 120
     },
-    "createdBy": {
+    "created_by": {
       "type": "string",
       "description": "User or system that created the snapshot",
       "example": "inventory.system"

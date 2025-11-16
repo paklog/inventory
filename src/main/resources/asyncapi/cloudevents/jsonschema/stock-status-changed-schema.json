@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.product-stock.status-changed",
+  "$id": "https://paklog.com/schemas/inventory/v1/stock-status-changed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Status Changed Event",
   "description": "Published when inventory stock status transitions between states (e.g., AVAILABLE to QUARANTINE, QUARANTINE to AVAILABLE, AVAILABLE to DAMAGED). Stock status determines whether inventory is eligible for allocation to customer orders. Only AVAILABLE status contributes to available-to-promise. This event supports quality management, expiration tracking, and damage reporting workflows.",

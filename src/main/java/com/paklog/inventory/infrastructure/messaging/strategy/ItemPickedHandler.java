@@ -60,6 +60,8 @@ public class ItemPickedHandler implements EventHandler {
             metricsService.incrementEventError(EVENT_TYPE, e.getClass().getSimpleName());
             metricsService.stopEventProcessing(sample, EVENT_TYPE + "_error");
             throw e;
-        }
-    }
+        
+
+}
+}
 }

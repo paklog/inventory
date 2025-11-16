@@ -232,6 +232,8 @@ public class CycleCountService {
     ) {
         public double getAccuracyRate() {
             return totalCounts > 0 ? (double) accurateCounts / totalCounts * 100 : 0.0;
-        }
-    }
+        
+
+}
+}
 }

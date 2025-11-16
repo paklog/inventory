@@ -16,12 +16,14 @@ public class LotBatchSnapshot {
 
     private LotBatchSnapshot(String lotNumber, int quantity, LocalDate expiryDate,
                             LocalDate manufactureDate, String batchStatus) {
-        this.lotNumber = lotNumber;
+this.lotNumber = lotNumber;
         this.quantity = quantity;
         this.expiryDate = expiryDate;
         this.manufactureDate = manufactureDate;
         this.batchStatus = batchStatus;
     }
+
+
 
     public static LotBatchSnapshot of(String lotNumber, int quantity, LocalDate expiryDate,
                                      LocalDate manufactureDate, String batchStatus) {

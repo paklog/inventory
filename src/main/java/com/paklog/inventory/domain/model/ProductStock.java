@@ -40,6 +40,9 @@ public class ProductStock {
     private InventoryValuation valuation; // Cost and valuation tracking
     private ABCClassification abcClassification; // ABC classification
 
+    // Multi-location support
+    private String locationId; // Warehouse/location identifier (e.g., "WH-001", "STORE-NYC")
+
     private final List<DomainEvent> uncommittedEvents = new ArrayList<>();
 
     // Private constructor for internal use and reconstruction from persistence
@@ -91,8 +94,70 @@ public class ProductStock {
         return new ProductStock(sku, StockLevel.of(quantityOnHand, quantityAllocated), lastUpdated);
     }
 
+    // Comprehensive factory method for full reconstruction from persistence
+    public static ProductStock loadComplete(
+            String sku,
+            int quantityOnHand,
+            int quantityAllocated,
+            LocalDateTime lastUpdated,
+            Long version,
+            Map<StockStatus, StockStatusQuantity> stockByStatus,
+            List<InventoryHold> holds,
+            boolean serialTracked,
+            List<SerialNumber> serialNumbers,
+            InventoryValuation valuation,
+            ABCClassification abcClassification,
+            List<LotBatch> lotBatches,
+            String locationId) {
+
+        ProductStock productStock = new ProductStock(sku, StockLevel.of(quantityOnHand, quantityAllocated), lastUpdated);
+        productStock.version = version;
+
+        // Reconstruct stock by status
+        if (stockByStatus != null && !stockByStatus.isEmpty()) {
+            productStock.stockByStatus = new HashMap<>(stockByStatus);
+        } else {
+            // Default: assume all stock is AVAILABLE if no status tracking exists
+            if (quantityOnHand > 0) {
+                productStock.stockByStatus.put(StockStatus.AVAILABLE,
+                    StockStatusQuantity.of(StockStatus.AVAILABLE, quantityOnHand));
+            }
+        }
+
+        // Reconstruct holds
+        if (holds != null) {
+            productStock.holds = new ArrayList<>(holds);
+        }
+
+        // Reconstruct serial tracking
+        productStock.serialTracked = serialTracked;
+        if (serialNumbers != null) {
+            productStock.serialNumbers = new ArrayList<>(serialNumbers);
+        }
+
+        // Reconstruct valuation
+        productStock.valuation = valuation;
+
+        // Reconstruct ABC classification
+        productStock.abcClassification = abcClassification;
+
+        // Reconstruct lot batches
+        if (lotBatches != null) {
+            productStock.lotBatches = new ArrayList<>(lotBatches);
+        }
+
+        // Set location
+        productStock.locationId = locationId;
+
+        return productStock;
+    }
+
     public Long getVersion() {
         return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public String getSku() {
@@ -168,6 +233,14 @@ public class ProductStock {
 
     public LocalDateTime getLastUpdated() {
         return lastUpdated;
+    }
+
+    public String getLocationId() {
+        return locationId;
+    }
+
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 
     /**
@@ -258,6 +331,34 @@ public class ProductStock {
             throw new InvalidQuantityException("decrease", quantity, "Decreased quantity must be positive");
         }
         adjustQuantityOnHand(-quantity, "PHYSICAL_STOCK_REMOVED");
+    }
+
+    /**
+     * Set absolute stock quantity (physical count override).
+     * This is used for physical inventory counts where the exact quantity is known.
+     *
+     * @param absoluteQuantity The exact quantity on hand
+     * @param reason The reason for setting (typically PHYSICAL_COUNT or CYCLE_COUNT)
+     * @throws IllegalArgumentException if absoluteQuantity is negative
+     */
+    public void setAbsoluteQuantity(int absoluteQuantity, String reason) {
+        if (absoluteQuantity < 0) {
+            throw new InvalidQuantityException("setAbsolute", absoluteQuantity,
+                "Absolute quantity cannot be negative");
+        }
+
+        if (stockLevel.getQuantityAllocated() > absoluteQuantity) {
+            throw new StockLevelInvariantViolationException(
+                "Cannot set quantity below allocated amount. Please deallocate first.",
+                absoluteQuantity,
+                stockLevel.getQuantityAllocated());
+        }
+
+        StockLevel previousStockLevel = this.stockLevel;
+        this.stockLevel = StockLevel.of(absoluteQuantity, stockLevel.getQuantityAllocated());
+        this.lastUpdated = LocalDateTime.now();
+        validateInvariants();
+        addEvent(new StockLevelChangedEvent(sku, previousStockLevel, this.stockLevel, reason));
     }
 
     /**
@@ -674,6 +775,18 @@ public class ProductStock {
                 "Allocated quantity cannot exceed quantity on hand",
                 stockLevel.getQuantityOnHand(),
                 stockLevel.getQuantityAllocated());
+        }
+        // Validate allocation doesn't exceed AVAILABLE status quantity
+        if (stockByStatus != null && !stockByStatus.isEmpty()) {
+            int availableQty = stockByStatus.getOrDefault(StockStatus.AVAILABLE,
+                StockStatusQuantity.of(StockStatus.AVAILABLE, 0)).getQuantity();
+            if (stockLevel.getQuantityAllocated() > availableQty) {
+                throw new StockLevelInvariantViolationException(
+                    String.format("Allocated quantity (%d) cannot exceed AVAILABLE stock (%d)",
+                        stockLevel.getQuantityAllocated(), availableQty),
+                    stockLevel.getQuantityOnHand(),
+                    stockLevel.getQuantityAllocated());
+            }
         }
     }
 

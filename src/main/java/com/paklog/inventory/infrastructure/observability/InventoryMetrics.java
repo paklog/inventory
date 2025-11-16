@@ -93,6 +93,8 @@ public class InventoryMetrics {
             return operation.get();
         } finally {
             recordOperationDuration(operationType, System.currentTimeMillis() - startTime);
-        }
-    }
+        
+
+}
+}
 }

@@ -14,11 +14,13 @@ public class LocationCapacity {
 
     private LocationCapacity(Integer maxPallets, Double maxWeightKg,
                             Double maxCubicMeters, Integer maxUnits) {
-        this.maxPallets = maxPallets;
+this.maxPallets = maxPallets;
         this.maxWeightKg = maxWeightKg;
         this.maxCubicMeters = maxCubicMeters;
         this.maxUnits = maxUnits;
     }
+
+
 
     public static LocationCapacity unlimited() {
         return new LocationCapacity(null, null, null, null);
@@ -124,6 +126,8 @@ public class LocationCapacity {
 
         public LocationCapacity build() {
             return new LocationCapacity(maxPallets, maxWeightKg, maxCubicMeters, maxUnits);
-        }
-    }
+        
+
+}
+}
 }

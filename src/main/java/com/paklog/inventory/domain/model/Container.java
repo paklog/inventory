@@ -38,12 +38,11 @@ public class Container {
                      ContainerStatus status) {
         this.lpn = lpn;
         this.type = type;
-        this.currentLocation = currentLocation;
-        this.createdBy = createdBy;
-        this.createdAt = createdAt;
-        this.status = status;
         this.items = new ArrayList<>();
-        this.lastMovedAt = createdAt;
+        this.currentLocation = currentLocation;
+        this.createdAt = createdAt;
+        this.createdBy = createdBy;
+        this.status = status;
         validateInvariants();
     }
 

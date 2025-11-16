@@ -25,10 +25,12 @@ public class StockLevel {
                 quantityOnHand,
                 quantityAllocated);
         }
+
         this.quantityOnHand = quantityOnHand;
         this.quantityAllocated = quantityAllocated;
         this.quantityReserved = quantityReserved;
     }
+
 
     public static StockLevel of(int quantityOnHand, int quantityAllocated) {
         return new StockLevel(quantityOnHand, quantityAllocated, 0);

@@ -58,6 +58,8 @@ public class AsyncLedgerService {
             log.error("Failed to save ledger entry (fire-and-forget) for sku: {}",
                     entry.getSku(), e);
             // Don't propagate - this is fire-and-forget
-        }
-    }
+        
+
+}
+}
 }

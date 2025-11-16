@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.abc-classification.changed",
+  "$id": "https://paklog.com/schemas/inventory/v1/abc-classification-changed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ABC Classification Changed Event",
   "description": "Published when a SKU's ABC classification changes based on inventory analysis. ABC classification uses Pareto principle (80/20 rule) to categorize inventory: Class A items (top 20% by value, 80% of revenue), Class B (middle 30%), Class C (bottom 50%). This classification drives inventory policies including safety stock levels, reorder points, cycle count frequencies, and storage location assignments.",

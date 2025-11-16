@@ -52,21 +52,6 @@ public class InventoryHold {
         );
     }
 
-    public static InventoryHold create(HoldType holdType, int quantityOnHold,
-                                      String reason, String placedBy,
-                                      LocalDateTime expiresAt) {
-        return new InventoryHold(
-            UUID.randomUUID().toString(),
-            holdType,
-            quantityOnHold,
-            reason,
-            placedBy,
-            LocalDateTime.now(),
-            expiresAt,
-            null,
-            null
-        );
-    }
 
     public static InventoryHold createForLot(HoldType holdType, int quantityOnHold,
                                             String reason, String placedBy,

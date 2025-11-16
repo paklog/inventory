@@ -49,7 +49,6 @@ public class StockTransfer {
         this.initiatedAt = initiatedAt;
         this.reason = reason;
         this.status = status;
-        this.actualQuantityReceived = 0;
         validateInvariants();
     }
 

@@ -37,6 +37,21 @@ public class CatchWeight {
         this.withinTolerance = calculateWithinTolerance();
     }
 
+    public CatchWeight(
+        BigDecimal nominalWeight,
+        BigDecimal actualWeight,
+        UnitOfMeasure weightUOM,
+        BigDecimal tolerance,
+        boolean withinTolerance
+    ) {
+        this.nominalWeight = nominalWeight;
+        this.actualWeight = actualWeight;
+        this.weightUOM = weightUOM;
+        this.tolerance = tolerance;
+        this.withinTolerance = withinTolerance;
+    }
+
+
     /**
      * Create catch weight with actual measurement
      */

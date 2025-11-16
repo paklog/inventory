@@ -10,10 +10,10 @@ import java.util.Map;
  */
 public class InventoryHoldReleasedEvent extends DomainEvent {
 
-    private final String sku;
-    private final String holdId;
-    private final int quantityReleased;
-    private final String releasedBy;
+    private String sku;
+    private String holdId;
+    private int quantityReleased;
+    private String releasedBy;
 
     public InventoryHoldReleasedEvent(String sku, String holdId, int quantityReleased, String releasedBy) {
         super(sku);
@@ -68,5 +68,23 @@ public class InventoryHoldReleasedEvent extends DomainEvent {
 
     public String getReason() {
         return "Hold released";
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String sku;
+        private String holdId;
+        private int quantityReleased;
+        private String releasedBy;
+
+        public Builder sku(final String sku) { this.sku = sku; return this; }
+        public Builder holdId(final String holdId) { this.holdId = holdId; return this; }
+        public Builder quantityReleased(final int quantityReleased) { this.quantityReleased = quantityReleased; return this; }
+        public Builder releasedBy(final String releasedBy) { this.releasedBy = releasedBy; return this; }
+
+        public InventoryHoldReleasedEvent build() {
+            return new InventoryHoldReleasedEvent(sku, holdId, quantityReleased, releasedBy);
+        }
     }
 }

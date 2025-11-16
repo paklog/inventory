@@ -28,6 +28,12 @@ public class InventoryLedgerEntry {
     }
 
     // Factory methods for different types of ledger entries
+    public static InventoryLedgerEntry create(String sku, int quantityChange, ChangeType changeType,
+                                               String sourceReference, String reason, String operatorId) {
+        return new InventoryLedgerEntry(UUID.randomUUID().toString(), sku, LocalDateTime.now(),
+                quantityChange, changeType, sourceReference, reason, operatorId);
+    }
+
     public static InventoryLedgerEntry forAllocation(String sku, int quantity, String orderId) {
         return new InventoryLedgerEntry(UUID.randomUUID().toString(), sku, LocalDateTime.now(),
                 quantity, ChangeType.ALLOCATION, orderId, "Order Allocation", "System");

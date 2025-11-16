@@ -33,6 +33,21 @@ public class ComponentAllocation {
         this.allocatedAt = LocalDateTime.now();
     }
 
+    public ComponentAllocation(
+        String componentSku,
+        int quantity,
+        Location sourceLocation,
+        String lotNumber,
+        LocalDateTime allocatedAt
+    ) {
+        this.componentSku = componentSku;
+        this.quantity = quantity;
+        this.sourceLocation = sourceLocation;
+        this.lotNumber = lotNumber;
+        this.allocatedAt = allocatedAt;
+    }
+
+
     /**
      * Create component allocation
      */

@@ -27,6 +27,48 @@ public class InventoryLedgerRepositoryImpl implements InventoryLedgerRepository 
     }
 
     @Override
+    public List<InventoryLedgerEntry> saveAll(Iterable<InventoryLedgerEntry> entries) {
+        List<InventoryLedgerEntryDocument> docs = new java.util.ArrayList<>();
+        for (InventoryLedgerEntry entry : entries) {
+            docs.add(InventoryLedgerEntryDocument.fromDomain(entry));
+        }
+        springRepository.saveAll(docs);
+
+        // Return the original list
+        List<InventoryLedgerEntry> result = new java.util.ArrayList<>();
+        entries.forEach(result::add);
+        return result;
+    }
+
+    @Override
+    public List<InventoryLedgerEntry> findAll() {
+        return springRepository.findAll().stream()
+                .map(InventoryLedgerEntryDocument::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InventoryLedgerEntry> findBySku(String sku) {
+        return springRepository.findBySku(sku).stream()
+                .map(InventoryLedgerEntryDocument::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InventoryLedgerEntry> findBySkuAndTimestampBetween(String sku, LocalDateTime start, LocalDateTime end) {
+        return springRepository.findBySkuAndTimestampBetween(sku, start, end).stream()
+                .map(InventoryLedgerEntryDocument::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InventoryLedgerEntry> findByChangeType(com.paklog.inventory.domain.model.ChangeType changeType) {
+        return springRepository.findByChangeType(changeType.name()).stream()
+                .map(InventoryLedgerEntryDocument::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public int findTotalQuantityPickedBySkuAndDateRange(String sku, LocalDateTime start, LocalDateTime end) {
         return springRepository.findPicksBySkuAndDateRange(sku, start, end).stream()
                 .mapToInt(InventoryLedgerEntryDocument::getQuantityChange)
@@ -43,5 +85,10 @@ public class InventoryLedgerRepositoryImpl implements InventoryLedgerRepository 
                         InventoryLedgerEntryDocument::getSku,
                         Collectors.summingInt(InventoryLedgerEntryDocument::getQuantityChange)
                 ));
+    }
+
+    @Override
+    public void deleteAll() {
+        springRepository.deleteAll();
     }
 }

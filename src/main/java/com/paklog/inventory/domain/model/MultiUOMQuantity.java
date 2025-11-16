@@ -28,10 +28,10 @@ public class MultiUOMQuantity {
 
         this.baseUOM = baseUOM;
         this.baseQuantity = baseQuantity;
-        this.quantities = quantities == null ? new HashMap<>() : new HashMap<>(quantities);
-        this.quantities.put(baseUOM, baseQuantity); // Ensure base is always present
+        this.quantities = quantities != null ? new HashMap<>(quantities) : new HashMap<>();
         this.catchWeight = catchWeight;
     }
+
 
     /**
      * Create from base UOM quantity only

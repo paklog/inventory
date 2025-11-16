@@ -61,6 +61,8 @@ public class CloudEventPublisher implements EventPublisherPort {
             metrics.recordCloudEventFailed();
             log.error("Failed to publish CloudEvent for type: {}", domainEvent.getEventType(), e);
             throw new RuntimeException("Failed to publish CloudEvent", e);
-        }
-    }
+        
+
+}
+}
 }

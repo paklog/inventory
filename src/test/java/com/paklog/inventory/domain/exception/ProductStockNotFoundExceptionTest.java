@@ -76,6 +76,8 @@ class ProductStockNotFoundExceptionTest {
             // Assert
             assertEquals(sku, exception.getSku());
             assertTrue(exception.getMessage().contains(sku));
-        }
-    }
+        
+
+}
+}
 }

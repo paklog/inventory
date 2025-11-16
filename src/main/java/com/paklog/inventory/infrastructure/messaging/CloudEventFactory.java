@@ -62,6 +62,8 @@ public class CloudEventFactory {
     public static class CloudEventCreationException extends RuntimeException {
         public CloudEventCreationException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
+        
+
+}
+}
 }

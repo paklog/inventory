@@ -1,5 +1,5 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.initiated",
+  "$id": "https://paklog.com/schemas/inventory/v1/stock-transfer-initiated.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Transfer Initiated Event",
   "description": "Published when a stock transfer between warehouse locations is initiated. This marks the beginning of the transfer lifecycle and reserves the inventory at the source location. Common use cases include pick face replenishment, zone rebalancing, consolidation, and cross-docking operations. The transfer will progress through in-transit status before completion.",
