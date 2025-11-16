@@ -2,41 +2,41 @@
   "$id": "com.paklog.inventory.fulfillment.v1.product-stock.status-changed",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Status Changed Event",
-  "description": "Published when inventory stock status changes (e.g., AVAILABLE → QUARANTINE, QUARANTINE → AVAILABLE, AVAILABLE → DAMAGED)",
+  "description": "Published when inventory stock status transitions between states (e.g., AVAILABLE to QUARANTINE, QUARANTINE to AVAILABLE, AVAILABLE to DAMAGED). Stock status determines whether inventory is eligible for allocation to customer orders. Only AVAILABLE status contributes to available-to-promise. This event supports quality management, expiration tracking, and damage reporting workflows.",
   "type": "object",
-  "required": ["sku", "previousStatus", "newStatus", "quantity", "reason"],
+  "required": ["sku", "previous_status", "new_status", "quantity", "reason"],
   "properties": {
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code within the inventory system",
       "example": "SKU-12345"
     },
-    "previousStatus": {
+    "previous_status": {
       "type": "string",
-      "description": "Previous stock status",
+      "description": "Stock status before the transition. Determines the business context and validation rules for the status change.",
       "enum": ["AVAILABLE", "QUARANTINE", "DAMAGED", "EXPIRED", "ON_HOLD", "IN_TRANSIT"],
       "example": "AVAILABLE"
     },
-    "newStatus": {
+    "new_status": {
       "type": "string",
-      "description": "New stock status",
+      "description": "Stock status after the transition. AVAILABLE: Sellable inventory. QUARANTINE: Under quality review. DAMAGED: Physically damaged. EXPIRED: Past shelf life. ON_HOLD: Administrative hold. IN_TRANSIT: Being transferred.",
       "enum": ["AVAILABLE", "QUARANTINE", "DAMAGED", "EXPIRED", "ON_HOLD", "IN_TRANSIT"],
       "example": "QUARANTINE"
     },
     "quantity": {
       "type": "integer",
-      "description": "Quantity changing status",
+      "description": "Number of units undergoing the status change. May be partial quantity of total stock for the SKU.",
       "minimum": 1,
       "example": 30
     },
     "reason": {
       "type": "string",
-      "description": "Reason for status change",
-      "example": "Quality issue detected during inspection"
+      "description": "Human-readable explanation for the status change, supporting audit trail and quality management reporting",
+      "example": "Quality issue detected during inspection - suspected packaging defect"
     },
-    "lotNumber": {
+    "lot_number": {
       "type": "string",
-      "description": "Optional lot number if status change is lot-specific",
+      "description": "Optional lot/batch number if the status change applies to specific inventory lots. Critical for lot-specific recalls and traceability.",
       "example": "LOT-2024-Q1-001"
     }
   }

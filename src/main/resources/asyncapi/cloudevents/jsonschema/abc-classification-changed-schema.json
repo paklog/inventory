@@ -2,37 +2,37 @@
   "$id": "com.paklog.inventory.fulfillment.v1.abc-classification.changed",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ABC Classification Changed Event",
-  "description": "Published when SKU ABC classification changes, affecting inventory policies and cycle count frequencies",
+  "description": "Published when a SKU's ABC classification changes based on inventory analysis. ABC classification uses Pareto principle (80/20 rule) to categorize inventory: Class A items (top 20% by value, 80% of revenue), Class B (middle 30%), Class C (bottom 50%). This classification drives inventory policies including safety stock levels, reorder points, cycle count frequencies, and storage location assignments.",
   "type": "object",
-  "required": ["sku", "newClass", "criteria", "reason"],
+  "required": ["sku", "new_class", "criteria", "reason"],
   "properties": {
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code being reclassified",
       "example": "SKU-12345"
     },
-    "previousClass": {
+    "previous_class": {
       "type": "string",
-      "description": "Previous ABC class (null for initial classification)",
+      "description": "Previous ABC classification before the change. Null for initial classification of new SKUs. Used to track classification trends and identify items moving up or down in importance.",
       "enum": ["A", "B", "C", null],
       "example": "B"
     },
-    "newClass": {
+    "new_class": {
       "type": "string",
-      "description": "New ABC class",
+      "description": "New ABC classification after analysis. Class A: High-value/high-priority items requiring tight control. Class B: Medium-importance items. Class C: Low-value items with relaxed control.",
       "enum": ["A", "B", "C"],
       "example": "A"
     },
     "criteria": {
       "type": "string",
-      "description": "Classification criteria used",
+      "description": "Classification methodology used. VALUE_BASED: Annual dollar usage. VELOCITY_BASED: Unit turnover rate. CRITICALITY_BASED: Business impact score. COMBINED: Weighted combination of multiple factors.",
       "enum": ["VALUE_BASED", "VELOCITY_BASED", "CRITICALITY_BASED", "COMBINED"],
       "example": "COMBINED"
     },
     "reason": {
       "type": "string",
-      "description": "Reason for classification change",
-      "example": "Annual reclassification based on sales velocity"
+      "description": "Human-readable explanation for the classification change, supporting audit trail and business understanding",
+      "example": "Annual reclassification: SKU moved to Class A due to 150% increase in sales velocity"
     }
   }
 }

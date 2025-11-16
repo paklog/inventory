@@ -2,54 +2,54 @@
   "$id": "com.paklog.inventory.fulfillment.v1.product-stock.level-changed",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Level Changed Event",
-  "description": "Published when product stock levels change due to receipts, adjustments, allocations, or picks",
+  "description": "Published when product stock levels change due to receipts, adjustments, allocations, or picks. This is the primary domain event for the Inventory Bounded Context, enabling downstream services to react to inventory state changes. The event includes both before and after snapshots of the stock position, along with the reason for the change, supporting audit trails and analytics.",
   "type": "object",
-  "required": ["sku", "previousQuantityOnHand", "newQuantityOnHand", "changeReason"],
+  "required": ["sku", "previous_quantity_on_hand", "new_quantity_on_hand", "change_reason"],
   "properties": {
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code within the inventory system",
       "example": "SKU-12345"
     },
-    "previousQuantityOnHand": {
+    "previous_quantity_on_hand": {
       "type": "integer",
-      "description": "Quantity on hand before the change",
+      "description": "Total physical quantity in the warehouse before the change. This represents the actual countable inventory regardless of allocation status.",
       "minimum": 0,
       "example": 100
     },
-    "previousQuantityAllocated": {
+    "previous_quantity_allocated": {
       "type": "integer",
-      "description": "Allocated quantity before the change",
+      "description": "Quantity reserved for pending orders before the change. These items are physically present but committed to specific orders awaiting fulfillment.",
       "minimum": 0,
       "example": 20
     },
-    "previousAvailableToPromise": {
+    "previous_available_to_promise": {
       "type": "integer",
-      "description": "Available to Promise before the change",
+      "description": "Quantity available for new sales before the change. Calculated as quantity_on_hand minus quantity_allocated. This is the key metric for sales availability.",
       "minimum": 0,
       "example": 80
     },
-    "newQuantityOnHand": {
+    "new_quantity_on_hand": {
       "type": "integer",
-      "description": "Quantity on hand after the change",
+      "description": "Total physical quantity in the warehouse after the change",
       "minimum": 0,
       "example": 150
     },
-    "newQuantityAllocated": {
+    "new_quantity_allocated": {
       "type": "integer",
-      "description": "Allocated quantity after the change",
+      "description": "Quantity reserved for pending orders after the change",
       "minimum": 0,
       "example": 30
     },
-    "newAvailableToPromise": {
+    "new_available_to_promise": {
       "type": "integer",
-      "description": "Available to Promise after the change",
+      "description": "Quantity available for new sales after the change",
       "minimum": 0,
       "example": 120
     },
-    "changeReason": {
+    "change_reason": {
       "type": "string",
-      "description": "Reason for the stock level change",
+      "description": "Categorical reason for the stock level change, used for audit trails, analytics, and business rule enforcement",
       "enum": ["RECEIPT", "ADJUSTMENT", "ALLOCATION", "PICK", "RETURN", "TRANSFER", "CYCLE_COUNT"],
       "example": "RECEIPT"
     }

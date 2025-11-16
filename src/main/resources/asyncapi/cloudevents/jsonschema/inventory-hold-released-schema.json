@@ -2,29 +2,29 @@
   "$id": "com.paklog.inventory.fulfillment.v1.inventory-hold.released",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inventory Hold Released Event",
-  "description": "Published when an inventory hold is released and stock becomes available again",
+  "description": "Published when an inventory hold is released and stock becomes available for allocation again. This completes the hold lifecycle and returns the held quantity to the available-to-promise pool. Holds may be released after quality approval, credit clearance, administrative resolution, or regulatory compliance confirmation.",
   "type": "object",
-  "required": ["sku", "holdId", "quantityReleased", "releasedBy"],
+  "required": ["sku", "hold_id", "quantity_released", "released_by"],
   "properties": {
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code within the inventory system",
       "example": "SKU-12345"
     },
-    "holdId": {
+    "hold_id": {
       "type": "string",
-      "description": "Unique identifier for the hold being released",
+      "description": "Unique identifier of the hold being released, correlating to the original InventoryHoldPlaced event",
       "example": "HOLD-2024-001"
     },
-    "quantityReleased": {
+    "quantity_released": {
       "type": "integer",
-      "description": "Quantity being released from hold",
+      "description": "Number of units being released from hold. This quantity is added back to the available-to-promise calculation.",
       "minimum": 1,
       "example": 50
     },
-    "releasedBy": {
+    "released_by": {
       "type": "string",
-      "description": "User or system that released the hold",
+      "description": "User identifier (email or username) or system process that authorized the hold release. Used for audit trail and accountability.",
       "example": "quality.inspector@paklog.com"
     }
   }

@@ -1,18 +1,39 @@
 package com.paklog.inventory.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Response DTO for bulk allocation operations.
+ *
+ * Provides comprehensive results for high-performance bulk stock allocation,
+ * including:
+ * - Summary statistics (successful/failed counts)
+ * - Detailed results for each allocation attempt
+ * - Performance metrics (processing time)
+ * - Success rate calculation
+ *
+ * Designed to handle 10,000+ allocation requests in a single API call with
+ * partial success handling, allowing some allocations to succeed even if others fail.
  */
 public class BulkAllocationResponse {
 
+    @JsonProperty("total_requests")
     private final int totalRequests;
+
+    @JsonProperty("successful_allocations")
     private final int successfulAllocations;
+
+    @JsonProperty("failed_allocations")
     private final int failedAllocations;
+
     private final List<AllocationResult> results;
+
+    @JsonProperty("processed_at")
     private final LocalDateTime processedAt;
+
+    @JsonProperty("processing_time_ms")
     private final long processingTimeMs;
 
     public BulkAllocationResponse(int totalRequests, int successfulAllocations,
@@ -26,6 +47,15 @@ public class BulkAllocationResponse {
         this.processingTimeMs = processingTimeMs;
     }
 
+    /**
+     * Factory method to create a BulkAllocationResponse from allocation results.
+     *
+     * Automatically calculates success/failure counts from the results list.
+     *
+     * @param results list of individual allocation results
+     * @param processingTimeMs total processing time in milliseconds
+     * @return a new BulkAllocationResponse instance
+     */
     public static BulkAllocationResponse of(List<AllocationResult> results, long processingTimeMs) {
         int total = results.size();
         int successful = (int) results.stream().filter(AllocationResult::isSuccess).count();
@@ -59,6 +89,12 @@ public class BulkAllocationResponse {
         return processingTimeMs;
     }
 
+    /**
+     * Calculates the success rate as a percentage.
+     *
+     * @return success rate (0-100), or 0.0 if no requests were processed
+     */
+    @JsonProperty("success_rate")
     public double getSuccessRate() {
         return totalRequests > 0 ? (double) successfulAllocations / totalRequests * 100 : 0.0;
     }

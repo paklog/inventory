@@ -1,0 +1,164 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "inventory-service.fullname" . }}
+  labels:
+    {{- include "inventory-service.labels" . | nindent 4 }}
+  annotations:
+    # OpenAPI reference for API documentation
+    openapi.spec.url: "https://api.paklog.com/fulfillment/inventory/v1/openapi.yaml"
+    api.version: {{ .Chart.AppVersion | quote }}
+spec:
+  parentRefs:
+    {{- range .Values.gateway.parentRefs }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
+      {{- if .sectionName }}
+      sectionName: {{ .sectionName }}
+      {{- end }}
+    {{- end }}
+  hostnames:
+    {{- range .Values.gateway.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+  rules:
+    # =======================================================================
+    # GET /stock_levels/{sku} - Query stock level for a specific SKU
+    # High-traffic endpoint with caching, sub-millisecond response times
+    # =======================================================================
+    - matches:
+        - path:
+            type: RegularExpression
+            value: "/fulfillment/inventory/v1/stock_levels/[^/]+"
+          method: GET
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "stock-level-query"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: {{ .Values.httpRoutes.stockLevelQuery.timeouts.request | default "10s" }}
+        backendRequest: {{ .Values.httpRoutes.stockLevelQuery.timeouts.backendRequest | default "5s" }}
+
+    # =======================================================================
+    # PATCH /stock_levels/{sku} - Adjust stock level for a SKU
+    # Manual adjustments with audit trail
+    # =======================================================================
+    - matches:
+        - path:
+            type: RegularExpression
+            value: "/fulfillment/inventory/v1/stock_levels/[^/]+"
+          method: PATCH
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "stock-adjustment"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: {{ .Values.httpRoutes.stockAdjustments.timeouts.request | default "30s" }}
+        backendRequest: {{ .Values.httpRoutes.stockAdjustments.timeouts.backendRequest | default "15s" }}
+
+    # =======================================================================
+    # POST /stock_levels/{sku}/reservations - Create stock reservation
+    # Soft allocation without physical movement
+    # =======================================================================
+    - matches:
+        - path:
+            type: RegularExpression
+            value: "/fulfillment/inventory/v1/stock_levels/[^/]+/reservations"
+          method: POST
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "stock-reservation"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: {{ .Values.httpRoutes.reservations.timeouts.request | default "15s" }}
+        backendRequest: {{ .Values.httpRoutes.reservations.timeouts.backendRequest | default "10s" }}
+
+    # =======================================================================
+    # POST /allocations/bulk - Bulk stock allocation
+    # High-performance batch processing (10,000+ items)
+    # =======================================================================
+    - matches:
+        - path:
+            type: Exact
+            value: "/fulfillment/inventory/v1/allocations/bulk"
+          method: POST
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "bulk-allocation"
+              - name: X-Request-Timeout
+                value: "120s"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: {{ .Values.httpRoutes.bulkAllocations.timeouts.request | default "120s" }}
+        backendRequest: {{ .Values.httpRoutes.bulkAllocations.timeouts.backendRequest | default "60s" }}
+
+    # =======================================================================
+    # GET /inventory_health_metrics - Inventory health analytics
+    # Complex aggregation queries with caching
+    # =======================================================================
+    - matches:
+        - path:
+            type: Exact
+            value: "/fulfillment/inventory/v1/inventory_health_metrics"
+          method: GET
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "health-metrics"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: {{ .Values.httpRoutes.healthMetrics.timeouts.request | default "60s" }}
+        backendRequest: {{ .Values.httpRoutes.healthMetrics.timeouts.backendRequest | default "30s" }}
+
+    # =======================================================================
+    # Actuator endpoints for health checks (internal)
+    # =======================================================================
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/inventory/actuator"
+          method: GET
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Route-Name
+                value: "actuator"
+      backendRefs:
+        - name: {{ include "inventory-service.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 100
+      timeouts:
+        request: "10s"
+        backendRequest: "5s"
+{{- end }}

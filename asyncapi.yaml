@@ -3,32 +3,90 @@ info:
   title: Inventory Events (CloudEvents)
   version: 1.0.0
   description: |
-    Defines the event-driven contract for the Inventory Bounded Context.
-    It consumes events from other contexts to update stock levels and publishes a canonical StockLevelChanged event.
-    All events conform to the CloudEvents v1.0 specification.
+    # Inventory Bounded Context - Event-Driven Contract
+
+    Defines the event-driven contract for the Inventory Bounded Context within the Paklog fulfillment platform.
+    This service acts as the **source of truth for logical inventory levels**, providing real-time stock visibility
+    across the fulfillment network.
+
+    ## Architecture Overview
+
+    The Inventory Service follows an event-driven architecture pattern:
+    - **Consumes** events from upstream contexts (Warehouse, Order Management)
+    - **Publishes** canonical domain events for downstream consumers (Order Routing, Reporting, Analytics)
+    - All events conform to **CloudEvents v1.0 specification** for interoperability
+
+    ## Key Concepts
+
+    - **Quantity on Hand (QoH)**: Total physical units in the warehouse
+    - **Quantity Allocated**: Units reserved for pending orders awaiting fulfillment
+    - **Available to Promise (ATP)**: Units available for new orders (QoH - Allocated)
+
+    ## Event Flow
+
+    ```
+    Warehouse Context → [ItemPicked, AllocationRequested] → Inventory Service
+    Inventory Service → [StockLevelChanged] → Order Routing, Analytics
+    ```
+
+    ## Compliance
+
+    - Events are validated against JSON schemas before publishing
+    - Full audit trail with correlation IDs for distributed tracing
+    - Transactional outbox pattern ensures at-least-once delivery
 
 servers:
   production:
-    url: kafka-prod.example.com:9092
+    url: kafka-prod.paklog.com:9092
     protocol: kafka
-    description: Production Kafka broker
+    description: Production Kafka broker cluster with high availability
+
+  staging:
+    url: kafka-staging.paklog.com:9092
+    protocol: kafka
+    description: Staging Kafka broker for integration testing
+
+  development:
+    url: localhost:9092
+    protocol: kafka
+    description: Local development Kafka broker
 
 channels:
   fulfillment.warehouse.v1.events:
-    description: The topic this service subscribes to for upstream events from the warehouse.
+    description: |
+      **Inbound Events Channel**
+
+      Topic for upstream events from the Warehouse Management context that affect inventory state.
+      The Inventory Service subscribes to this channel to maintain synchronized stock levels.
+
+      Events consumed:
+      - `InventoryAllocationRequested`: Reserve stock for an order
+      - `ItemPicked`: Physical item picked from warehouse location
+
+      Consumer Group: `inventory-service-group`
     subscribe:
-      summary: Consume events from the warehouse that affect inventory state.
+      summary: Consume warehouse events to update inventory state
+      operationId: consume_warehouse_events
       message:
         oneOf:
           - $ref: '#/components/messages/ItemPicked'
           - $ref: '#/components/messages/InventoryAllocationRequested'
-          # In a real system, you would also listen for events like 'StockReceived' from an inbound process
-          # and 'ReturnItemRestocked' from the Returns Management context.
 
   fulfillment.inventory.v1.events:
-    description: The topic this service publishes its own domain events to. This is the source of truth for stock levels.
+    description: |
+      **Outbound Events Channel**
+
+      Primary topic for publishing inventory domain events. This channel serves as the authoritative
+      source for stock level changes across the platform.
+
+      Downstream consumers include:
+      - Order Routing Service (availability checks)
+      - Analytics Service (inventory metrics)
+      - Notification Service (low stock alerts)
+      - External integrations (marketplace sync)
     publish:
-      summary: Publish an event whenever the available stock level for a SKU changes.
+      summary: Publish stock level changes for downstream consumption
+      operationId: publish_stock_level_changed
       message:
         $ref: '#/components/messages/StockLevelChanged'
 
@@ -37,7 +95,18 @@ components:
     InventoryAllocationRequested:
       name: inventory_allocation_requested
       title: Inventory Allocation Requested
-      summary: Consumes this event to decrease quantity_allocated and increase quantity_on_hand for a SKU.
+      summary: |
+        Request to allocate (reserve) stock for a specific order.
+
+        **Business Logic:**
+        - Increases `quantity_allocated` by the requested amount
+        - Decreases `available_to_promise` accordingly
+        - Does NOT affect `quantity_on_hand` (physical stock unchanged)
+        - Triggers `StockLevelChanged` event with reason `ALLOCATION`
+
+        **Validation:**
+        - Fails if `available_to_promise` < requested quantity (insufficient stock)
+        - Idempotent: Duplicate requests for same order_id are ignored
       contentType: application/cloudevents+json
       payload:
         $ref: "#/components/schemas/InventoryAllocationRequestedCloudEvent"
@@ -45,7 +114,18 @@ components:
     ItemPicked:
       name: item_picked
       title: Item Picked
-      summary: Consumes this event to decrease quantity_on_hand and reverse the allocation for a SKU.
+      summary: |
+        Notification that an item has been physically picked from warehouse inventory.
+
+        **Business Logic:**
+        - Decreases `quantity_on_hand` (physical stock removed)
+        - Decreases `quantity_allocated` (allocation fulfilled)
+        - `available_to_promise` remains unchanged (already excluded from ATP during allocation)
+        - Triggers `StockLevelChanged` event with reason `PICK`
+
+        **Important:**
+        This event represents the actual physical movement of goods, not just a reservation.
+        The item has left the warehouse location and is en route to packing.
       contentType: application/cloudevents+json
       payload:
         $ref: "#/components/schemas/ItemPickedCloudEvent"
@@ -53,169 +133,247 @@ components:
     StockLevelChanged:
       name: stock_level_changed
       title: Stock Level Changed
-      summary: Published whenever the available_to_promise quantity for a SKU changes. This is the primary output of this Bounded Context.
+      summary: |
+        **Primary Domain Event** - Published whenever inventory position changes for a SKU.
+
+        This is the canonical event that downstream services subscribe to for inventory visibility.
+        It includes complete before/after snapshots supporting:
+        - Change detection and delta calculations
+        - Audit trail and compliance requirements
+        - Analytics and trending analysis
+        - Real-time inventory dashboards
+
+        **Trigger Reasons:**
+        - `ALLOCATION`: Stock reserved for order
+        - `DEALLOCATION`: Reservation cancelled
+        - `ITEM_PICKED`: Physical stock removed
+        - `STOCK_RECEIPT`: New inventory received
+        - `CYCLE_COUNT`: Inventory adjustment from count
+        - `RETURN`: Returned item restocked
+        - `TRANSFER`: Inter-location movement
       contentType: application/cloudevents+json
       payload:
         $ref: "#/components/schemas/StockLevelChangedCloudEvent"
 
   schemas:
-    # --- Incoming Event Definition ---
+    # --- CloudEvents Envelope for Incoming Events ---
     InventoryAllocationRequestedCloudEvent:
       type: object
+      description: CloudEvents envelope for inventory allocation request
       required: [specversion, type, source, id, time, data]
       properties:
         specversion:
           type: string
           enum: ["1.0"]
+          description: CloudEvents specification version
         type:
           type: string
           enum: ["com.example.fulfillment.warehouse.inventory.allocation.requested"]
+          description: Fully qualified event type identifier
         source:
           type: string
           format: uri-reference
+          description: URI identifying the event producer
+          example: "/fulfillment/order-management-service"
         subject:
           type: string
-          description: The SKU of the item for which allocation is requested.
+          description: The SKU of the item for which allocation is requested
+          example: "SKU-12345"
         id:
           type: string
           format: uuid
+          description: Unique event identifier for deduplication
+          example: "550e8400-e29b-41d4-a716-446655440000"
         time:
           type: string
           format: date-time
+          description: Timestamp when the event was generated (ISO 8601)
+          example: "2025-10-05T14:30:00Z"
         datacontenttype:
           type: string
           enum: ["application/json"]
+          description: Media type of the data payload
         data:
           $ref: '#/components/schemas/InventoryAllocationRequestedData'
 
     ItemPickedCloudEvent:
       type: object
+      description: CloudEvents envelope for item picked notification
       required: [specversion, type, source, id, time, data]
       properties:
         specversion:
           type: string
           enum: ["1.0"]
+          description: CloudEvents specification version
         type:
           type: string
           enum: ["com.example.fulfillment.warehouse.item.picked"]
+          description: Fully qualified event type identifier
         source:
           type: string
           format: uri-reference
+          description: URI identifying the warehouse station that performed the pick
+          example: "/fulfillment/warehouse/WH01/pick-station-3"
         subject:
           type: string
-          description: The SKU of the item that was picked.
+          description: The SKU of the item that was physically picked
+          example: "SKU-12345"
         id:
           type: string
           format: uuid
+          description: Unique event identifier
+          example: "550e8400-e29b-41d4-a716-446655440001"
         time:
           type: string
           format: date-time
+          description: Timestamp when the item was picked
+          example: "2025-10-05T14:35:00Z"
         datacontenttype:
           type: string
           enum: ["application/json"]
+          description: Media type of the data payload
         data:
           $ref: '#/components/schemas/ItemPickedData'
 
-    # --- Outgoing Event Definition ---
+    # --- CloudEvents Envelope for Outgoing Events ---
     StockLevelChangedCloudEvent:
       type: object
+      description: CloudEvents envelope for stock level change notification
       required: [specversion, type, source, id, time, data]
       properties:
         specversion:
           type: string
           enum: ["1.0"]
+          description: CloudEvents specification version
         type:
           type: string
-          enum: ["com.example.fulfillment.inventory.stock_level.changed"]
+          enum: ["com.paklog.inventory.fulfillment.v1.product-stock.level-changed"]
+          description: Fully qualified event type following Paklog naming convention
         source:
           type: string
           format: uri-reference
           example: "/fulfillment/inventory-service"
+          description: URI identifying the Inventory Service as event producer
         subject:
           type: string
-          description: The SKU whose stock level has changed.
+          description: The SKU whose stock level has changed
+          example: "SKU-12345"
         id:
           type: string
           format: uuid
+          description: Unique event identifier for correlation and deduplication
+          example: "550e8400-e29b-41d4-a716-446655440002"
         time:
           type: string
           format: date-time
+          description: Timestamp when the stock level change was recorded
+          example: "2025-10-05T14:35:01Z"
         datacontenttype:
           type: string
           enum: ["application/json"]
+          description: Media type of the data payload
         data:
           $ref: '#/components/schemas/StockLevelChangedData'
 
-    # --- Domain-Specific Data Payloads ---
+    # --- Domain-Specific Data Payloads (snake_case) ---
     InventoryAllocationRequestedData:
       type: object
+      description: Payload for inventory allocation request containing order and quantity details
       required: [sku, quantity, order_id]
       properties:
         sku:
           type: string
-          description: The unique identifier for the product.
+          description: Stock Keeping Unit - the unique product identifier within the inventory system
+          example: "SKU-12345"
         quantity:
           type: integer
           format: int32
-          description: The quantity of the item to be allocated.
+          description: Number of units to allocate (reserve) for the order
           minimum: 1
+          example: 5
         order_id:
           type: string
           format: uuid
-          description: The ID of the order requesting allocation.
+          description: Unique identifier of the order requesting the allocation
+          example: "ORD-550e8400-e29b-41d4-a716-446655440000"
 
     ItemPickedData:
       type: object
+      description: Payload for item picked event containing pick details
       required: [sku, quantity_picked, order_id]
       properties:
         sku:
           type: string
-          description: The unique identifier for the product.
+          description: Stock Keeping Unit of the picked item
+          example: "SKU-12345"
         quantity_picked:
           type: integer
           format: int32
-          description: The quantity of the item that was picked.
+          description: Number of units physically picked from warehouse location
           minimum: 1
+          example: 5
         order_id:
           type: string
           format: uuid
-          description: The ID of the order for which the item was picked.
+          description: Identifier of the order being fulfilled
+          example: "ORD-550e8400-e29b-41d4-a716-446655440000"
 
     StockLevelChangedData:
       type: object
+      description: |
+        Complete stock level change payload with before/after snapshots.
+        Provides full audit trail and supports change analysis.
       required: [sku, previous_stock_level, new_stock_level, change_reason]
       properties:
         sku:
           type: string
-          description: The unique identifier for the product.
+          description: Stock Keeping Unit whose inventory position changed
+          example: "SKU-12345"
         previous_stock_level:
           $ref: '#/components/schemas/StockLevelData'
-          description: The stock level before the change.
+          description: Complete stock position snapshot before the change
         new_stock_level:
           $ref: '#/components/schemas/StockLevelData'
-          description: The stock level after the change.
+          description: Complete stock position snapshot after the change
         change_reason:
           type: string
-          description: The reason for the stock level change (e.g., ALLOCATION, DEALLOCATION, ITEM_PICKED, STOCK_RECEIPT, CYCLE_COUNT).
+          description: |
+            Categorical reason for the stock level change.
+            Used for audit trail, analytics, and business rule enforcement.
+          enum: [ALLOCATION, DEALLOCATION, ITEM_PICKED, STOCK_RECEIPT, CYCLE_COUNT, RETURN, TRANSFER, ADJUSTMENT]
+          example: "ALLOCATION"
 
     StockLevelData:
       type: object
+      description: |
+        Represents a point-in-time snapshot of inventory position for a SKU.
+        This is the core data structure for inventory visibility.
       properties:
         quantity_on_hand:
           type: integer
           format: int32
-          description: The total physical quantity of the item in the warehouse.
+          description: |
+            Total physical quantity present in the warehouse.
+            This is the actual countable inventory regardless of allocation status.
           minimum: 0
+          example: 100
         quantity_allocated:
           type: integer
           format: int32
-          description: The quantity reserved for open orders that have not yet been picked.
+          description: |
+            Quantity reserved for pending orders that have not yet been picked.
+            These items are physically present but committed to specific orders.
           minimum: 0
+          example: 25
         available_to_promise:
           type: integer
           format: int32
-          description: The quantity available for new sales (on_hand - allocated).
+          description: |
+            Quantity available for new sales orders.
+            Calculated as: quantity_on_hand - quantity_allocated.
+            This is the key metric for sales and order promising.
           minimum: 0
+          example: 75
       required:
         - quantity_on_hand
         - quantity_allocated

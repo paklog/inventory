@@ -2,45 +2,45 @@
   "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.initiated",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Transfer Initiated Event",
-  "description": "Published when a stock transfer between locations is initiated",
+  "description": "Published when a stock transfer between warehouse locations is initiated. This marks the beginning of the transfer lifecycle and reserves the inventory at the source location. Common use cases include pick face replenishment, zone rebalancing, consolidation, and cross-docking operations. The transfer will progress through in-transit status before completion.",
   "type": "object",
-  "required": ["transferId", "sku", "sourceLocation", "destinationLocation", "quantity", "initiatedBy", "reason"],
+  "required": ["transfer_id", "sku", "source_location", "destination_location", "quantity", "initiated_by", "reason"],
   "properties": {
-    "transferId": {
+    "transfer_id": {
       "type": "string",
-      "description": "Unique identifier for the transfer",
+      "description": "Unique identifier for the transfer operation, used to track the transfer through its complete lifecycle",
       "example": "XFER-2024-001"
     },
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code within the inventory system",
       "example": "SKU-12345"
     },
-    "sourceLocation": {
+    "source_location": {
       "type": "string",
-      "description": "Source location code",
+      "description": "Originating warehouse location code in format: Warehouse-Zone-Aisle-Shelf-Bin. Inventory will be decremented from this location.",
       "example": "WH01-A-01-01-A"
     },
-    "destinationLocation": {
+    "destination_location": {
       "type": "string",
-      "description": "Destination location code",
+      "description": "Target warehouse location code. Inventory will be incremented at this location upon completion.",
       "example": "WH01-B-02-03-B"
     },
     "quantity": {
       "type": "integer",
-      "description": "Quantity to transfer",
+      "description": "Number of units to transfer from source to destination location",
       "minimum": 1,
       "example": 100
     },
-    "initiatedBy": {
+    "initiated_by": {
       "type": "string",
-      "description": "User who initiated the transfer",
+      "description": "User identifier (email or username) of the warehouse operator who initiated the transfer",
       "example": "warehouse.operator@paklog.com"
     },
     "reason": {
       "type": "string",
-      "description": "Reason for transfer",
-      "example": "Replenishment to pick face"
+      "description": "Business reason for the transfer, supporting operational analytics and audit trail",
+      "example": "Replenishment to pick face - forward pick area running low"
     }
   }
 }

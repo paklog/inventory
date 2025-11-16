@@ -1,0 +1,142 @@
+================================================================================
+  Paklog Inventory Service - Deployment Complete
+================================================================================
+
+Thank you for installing {{ .Chart.Name }}!
+
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+================================================================================
+  SERVICE ENDPOINTS
+================================================================================
+
+{{- if .Values.gateway.enabled }}
+
+The service is accessible via Gateway API HTTPRoute at:
+{{- range .Values.gateway.hostnames }}
+  - https://{{ . }}/fulfillment/inventory/v1
+{{- end }}
+
+API Endpoints (based on OpenAPI specification):
+  - GET    /stock_levels/{sku}              - Query stock level
+  - PATCH  /stock_levels/{sku}              - Adjust stock level
+  - POST   /stock_levels/{sku}/reservations - Create reservation
+  - POST   /allocations/bulk                - Bulk allocate stock
+  - GET    /inventory_health_metrics        - Get health metrics
+
+{{- else }}
+
+To access the service, use port-forward:
+
+  kubectl port-forward svc/{{ include "inventory-service.fullname" . }} 8085:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+
+Then access:
+  - API: http://localhost:8085/inventory
+  - Health: http://localhost:8085/actuator/health
+  - Metrics: http://localhost:8085/actuator/prometheus
+
+{{- end }}
+
+================================================================================
+  MONITORING & OBSERVABILITY
+================================================================================
+
+{{- if .Values.serviceMonitor.enabled }}
+Prometheus ServiceMonitor: ENABLED
+  Metrics endpoint: /actuator/prometheus
+  Scrape interval: {{ .Values.serviceMonitor.interval }}
+{{- else }}
+Prometheus ServiceMonitor: DISABLED
+{{- end }}
+
+{{- if .Values.config.otel.enabled }}
+OpenTelemetry Tracing: ENABLED
+  Endpoint: {{ .Values.config.otel.endpoint }}
+  Sampling: {{ .Values.config.otel.samplingProbability }}
+{{- else }}
+OpenTelemetry Tracing: DISABLED
+{{- end }}
+
+Pod annotations for Prometheus scraping:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "{{ .Values.config.serverPort }}"
+  prometheus.io/path: "/actuator/prometheus"
+
+================================================================================
+  SCALING & AVAILABILITY
+================================================================================
+
+{{- if .Values.autoscaling.enabled }}
+Horizontal Pod Autoscaler: ENABLED
+  Min Replicas: {{ .Values.autoscaling.minReplicas }}
+  Max Replicas: {{ .Values.autoscaling.maxReplicas }}
+  CPU Target: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}%
+  Memory Target: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}%
+{{- else }}
+Horizontal Pod Autoscaler: DISABLED
+  Static Replicas: {{ .Values.replicaCount }}
+{{- end }}
+
+{{- if .Values.podDisruptionBudget.enabled }}
+Pod Disruption Budget: ENABLED
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  Min Available: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  Max Unavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+{{- else }}
+Pod Disruption Budget: DISABLED
+{{- end }}
+
+================================================================================
+  EXTERNAL DEPENDENCIES
+================================================================================
+
+MongoDB:
+  URI: {{ .Values.config.mongodb.uri }}
+  Database: {{ .Values.config.mongodb.database }}
+  Pool: {{ .Values.config.mongodb.poolMinSize }}-{{ .Values.config.mongodb.poolMaxSize }} connections
+
+Kafka:
+  Bootstrap Servers: {{ .Values.config.kafka.bootstrapServers }}
+  Consumer Group: {{ .Values.config.kafka.consumerGroupId }}
+  Producer Topic: {{ .Values.config.kafka.producerTopic }}
+  Consumer Topic: {{ .Values.config.kafka.consumerTopic }}
+
+Redis (L2 Cache):
+  Host: {{ .Values.config.redis.host }}:{{ .Values.config.redis.port }}
+
+================================================================================
+  USEFUL COMMANDS
+================================================================================
+
+Check deployment status:
+  kubectl get deployment {{ include "inventory-service.fullname" . }} -n {{ .Release.Namespace }}
+
+View pod logs:
+  kubectl logs -l app.kubernetes.io/name={{ include "inventory-service.name" . }} -n {{ .Release.Namespace }} -f
+
+Check HPA status:
+  kubectl get hpa {{ include "inventory-service.fullname" . }} -n {{ .Release.Namespace }}
+
+View HTTPRoute:
+  kubectl get httproute {{ include "inventory-service.fullname" . }} -n {{ .Release.Namespace }} -o yaml
+
+Test API endpoint:
+  curl -X GET "http://localhost:8085/inventory/stock_levels/SKU-12345"
+
+================================================================================
+  DOCUMENTATION
+================================================================================
+
+OpenAPI Specification:
+  https://api.paklog.com/fulfillment/inventory/v1/openapi.yaml
+
+AsyncAPI Specification (CloudEvents):
+  https://github.com/paklog/inventory/blob/main/asyncapi.yaml
+
+================================================================================

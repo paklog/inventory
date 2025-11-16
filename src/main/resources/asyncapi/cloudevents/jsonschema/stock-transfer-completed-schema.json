@@ -2,44 +2,44 @@
   "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.completed",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Transfer Completed Event",
-  "description": "Published when a stock transfer between locations is completed",
+  "description": "Published when a stock transfer between warehouse locations is completed and inventory has been received at the destination. This event marks the end of the transfer lifecycle, updating location-level inventory balances. The event includes shrinkage detection by comparing expected vs actual received quantities.",
   "type": "object",
-  "required": ["transferId", "sku", "fromLocation", "toLocation", "quantityTransferred", "completedBy"],
+  "required": ["transfer_id", "sku", "from_location", "to_location", "quantity_transferred", "completed_by"],
   "properties": {
-    "transferId": {
+    "transfer_id": {
       "type": "string",
-      "description": "Unique identifier for the transfer",
+      "description": "Unique identifier for the transfer operation, linking all events in the transfer lifecycle (initiated -> in-transit -> completed)",
       "example": "XFER-2024-001"
     },
     "sku": {
       "type": "string",
-      "description": "Stock Keeping Unit identifier",
+      "description": "Stock Keeping Unit identifier - the unique product code within the inventory system",
       "example": "SKU-12345"
     },
-    "fromLocation": {
+    "from_location": {
       "type": "string",
-      "description": "Source location code",
+      "description": "Source warehouse location code in format: Warehouse-Zone-Aisle-Shelf-Bin. This location's inventory was decremented.",
       "example": "WH01-A-01-01-A"
     },
-    "toLocation": {
+    "to_location": {
       "type": "string",
-      "description": "Destination location code",
+      "description": "Destination warehouse location code. This location's inventory was incremented with the received quantity.",
       "example": "WH01-B-02-03-B"
     },
-    "quantityTransferred": {
+    "quantity_transferred": {
       "type": "integer",
-      "description": "Actual quantity transferred",
+      "description": "Actual quantity received at the destination location. May differ from originally shipped quantity due to damage, loss, or counting errors (shrinkage).",
       "minimum": 1,
       "example": 100
     },
-    "completedBy": {
+    "completed_by": {
       "type": "string",
-      "description": "User who completed the transfer",
+      "description": "User identifier (email or username) of the warehouse operator who confirmed receipt and completed the transfer",
       "example": "warehouse.operator@paklog.com"
     },
-    "lotNumber": {
+    "lot_number": {
       "type": "string",
-      "description": "Optional lot number",
+      "description": "Optional lot/batch number for lot-tracked inventory, maintaining traceability through the transfer",
       "example": "LOT-2024-Q1-001"
     }
   }

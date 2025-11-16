@@ -1,0 +1,21 @@
+apiVersion: v2
+name: inventory-service
+description: Helm chart for Paklog Inventory Management Service - Source of truth for Available-to-Promise (ATP) calculations
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - inventory
+  - fulfillment
+  - paklog
+  - microservice
+  - spring-boot
+home: https://github.com/paklog/inventory
+sources:
+  - https://github.com/paklog/inventory
+maintainers:
+  - name: Paklog Platform Team
+    email: platform@paklog.com
+annotations:
+  category: Fulfillment
+  licenses: Apache-2.0

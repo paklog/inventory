@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "inventory-service.fullname" . }}-config
+  labels:
+    {{- include "inventory-service.labels" . | nindent 4 }}
+data:
+  # Application configuration
+  SPRING_PROFILES_ACTIVE: {{ .Values.config.springProfiles | quote }}
+  SERVER_PORT: {{ .Values.config.serverPort | quote }}
+
+  # MongoDB configuration
+  MONGODB_DATABASE: {{ .Values.config.mongodb.database | quote }}
+  MONGODB_POOL_MIN_SIZE: {{ .Values.config.mongodb.poolMinSize | quote }}
+  MONGODB_POOL_MAX_SIZE: {{ .Values.config.mongodb.poolMaxSize | quote }}
+
+  # Kafka configuration
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafka.bootstrapServers | quote }}
+  KAFKA_CONSUMER_GROUP_ID: {{ .Values.config.kafka.consumerGroupId | quote }}
+  KAFKA_PRODUCER_TOPIC: {{ .Values.config.kafka.producerTopic | quote }}
+  KAFKA_CONSUMER_TOPIC: {{ .Values.config.kafka.consumerTopic | quote }}
+
+  # Redis configuration
+  REDIS_HOST: {{ .Values.config.redis.host | quote }}
+  REDIS_PORT: {{ .Values.config.redis.port | quote }}
+
+  # Cache configuration
+  CACHE_TYPE: {{ .Values.config.cache.type | quote }}
+  CACHE_CAFFEINE_SPEC: {{ .Values.config.cache.caffeineSpec | quote }}
+
+  # OpenTelemetry configuration
+  OTEL_ENABLED: {{ .Values.config.otel.enabled | quote }}
+  {{- if .Values.config.otel.enabled }}
+  OTEL_ENDPOINT: {{ .Values.config.otel.endpoint | quote }}
+  OTEL_SAMPLING_PROBABILITY: {{ .Values.config.otel.samplingProbability | quote }}
+  {{- end }}
+
+  # Outbox configuration
+  OUTBOX_FIXED_DELAY: {{ .Values.config.outbox.fixedDelay | quote }}
+
+  {{- range $key, $value := .Values.extraConfigMap }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
