@@ -33,8 +33,6 @@ public class OpenTelemetryConfig {
             OpenTelemetrySdk sdk = (OpenTelemetrySdk) openTelemetry;
             sdk.close();
             log.info("OpenTelemetry SDK shutdown complete");
-        
-
-}
-}
+        }
+    }
 }

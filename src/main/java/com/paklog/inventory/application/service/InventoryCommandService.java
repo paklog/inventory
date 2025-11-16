@@ -1,5 +1,6 @@
 package com.paklog.inventory.application.service;
 
+import com.paklog.inventory.application.validator.ProductExistenceValidator;
 import com.paklog.inventory.domain.event.StockLevelChangedEvent;
 import com.paklog.inventory.domain.exception.ProductStockNotFoundException;
 import com.paklog.inventory.domain.model.InventoryLedgerEntry;
@@ -30,15 +31,18 @@ public class InventoryCommandService {
     private final InventoryLedgerRepository inventoryLedgerRepository;
     private final OutboxRepository outboxRepository;
     private final InventoryMetricsService metricsService;
+    private final ProductExistenceValidator productExistenceValidator;
 
     public InventoryCommandService(ProductStockRepository productStockRepository,
                                    InventoryLedgerRepository inventoryLedgerRepository,
                                    OutboxRepository outboxRepository,
-                                   InventoryMetricsService metricsService) {
+                                   InventoryMetricsService metricsService,
+                                   ProductExistenceValidator productExistenceValidator) {
         this.productStockRepository = productStockRepository;
         this.inventoryLedgerRepository = inventoryLedgerRepository;
         this.outboxRepository = outboxRepository;
         this.metricsService = metricsService;
+        this.productExistenceValidator = productExistenceValidator;
     }
 
     @Transactional
@@ -168,11 +172,13 @@ public class InventoryCommandService {
     public ProductStock receiveStock(String sku, int quantity, String receiptId) {
         log.info("Receiving stock for sku: {}, quantity: {}, receiptId: {}", sku, quantity, receiptId);
         Timer.Sample sample = metricsService.startStockOperation();
-        
+
         try {
             ProductStock productStock = productStockRepository.findBySku(sku)
                     .orElseGet(() -> {
                         log.info("Creating new product stock for sku: {}", sku);
+                        // Validate product exists in catalog before creating new stock
+                        productExistenceValidator.validateProductExists(sku);
                         return ProductStock.create(sku, 0);
                     });
 
@@ -209,6 +215,8 @@ public class InventoryCommandService {
         ProductStock productStock = productStockRepository.findBySku(sku)
                 .orElseGet(() -> {
                     log.info("Creating new product stock for sku: {}", sku);
+                    // Validate product exists in catalog before creating new stock
+                    productExistenceValidator.validateProductExists(sku);
                     return ProductStock.create(sku, 0);
                 });
 
@@ -228,5 +236,60 @@ public class InventoryCommandService {
         productStockRepository.save(productStock);
         publishDomainEvents(productStock);
         log.info("Quantity on hand decreased for sku: {}", sku);
+    }
+
+    /**
+     * Set absolute stock quantity (physical count).
+     * Used for physical inventory counts where exact quantity is known.
+     */
+    @Transactional
+    @CacheEvict(value = CacheConfiguration.PRODUCT_STOCK_CACHE, key = "#sku")
+    public ProductStock setStockLevel(String sku, int absoluteQuantity, String reasonCode,
+                                     String comment, String operatorId, String locationId) {
+        log.info("Setting absolute stock level for sku: {}, quantity: {}, reasonCode: {}",
+                sku, absoluteQuantity, reasonCode);
+        Timer.Sample sample = metricsService.startStockOperation();
+
+        try {
+            ProductStock productStock = productStockRepository.findBySku(sku)
+                    .orElseGet(() -> {
+                        log.info("Creating new product stock for sku: {}", sku);
+                        // Validate product exists in catalog before creating new stock
+                        productExistenceValidator.validateProductExists(sku);
+                        return ProductStock.create(sku, 0);
+                    });
+
+            int previousQuantityOnHand = productStock.getQuantityOnHand();
+            int previousQuantityAllocated = productStock.getQuantityAllocated();
+
+            productStock.setAbsoluteQuantity(absoluteQuantity, reasonCode);
+
+            if (locationId != null) {
+                productStock.setLocationId(locationId);
+            }
+
+            // Create ledger entry
+            int quantityChange = absoluteQuantity - previousQuantityOnHand;
+            InventoryLedgerEntry ledgerEntry = InventoryLedgerEntry.forAdjustment(
+                sku, quantityChange, reasonCode + (comment != null ? " - " + comment : ""), operatorId);
+            inventoryLedgerRepository.save(ledgerEntry);
+
+            ProductStock savedStock = productStockRepository.save(productStock);
+
+            // Update metrics
+            metricsService.incrementStockAdjustment(sku, quantityChange, reasonCode);
+            metricsService.updateInventoryMetrics(sku, previousQuantityOnHand, previousQuantityAllocated,
+                    savedStock.getQuantityOnHand(), savedStock.getQuantityAllocated());
+
+            metricsService.stopStockOperation(sample, "set_absolute");
+
+            publishDomainEvents(savedStock);
+            log.info("Absolute stock level set for sku: {}", sku);
+            return savedStock;
+        } catch (Exception e) {
+            log.error("Error setting absolute stock level for sku: {}", sku, e);
+            metricsService.stopStockOperation(sample, "set_absolute_error");
+            throw e;
+        }
     }
 }

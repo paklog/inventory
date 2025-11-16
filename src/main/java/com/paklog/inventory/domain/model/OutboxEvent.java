@@ -39,6 +39,8 @@ public class OutboxEvent {
     public static OutboxEvent from(DomainEvent domainEvent) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules(); // Register modules for Java 8 Date/Time API
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
         try {
             String eventData = objectMapper.writeValueAsString(domainEvent.getEventData());
             return new OutboxEvent(
@@ -58,6 +60,8 @@ public class OutboxEvent {
     public static OutboxEvent create(String eventType, String aggregateId, Map<String, Object> payload) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
         try {
             String eventData = objectMapper.writeValueAsString(payload);
             return new OutboxEvent(
@@ -78,6 +82,8 @@ public class OutboxEvent {
                                     LocalDateTime createdAt, boolean published, LocalDateTime publishedAt) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
         try {
             String eventData = objectMapper.writeValueAsString(payload);
             return new OutboxEvent(
@@ -132,6 +138,8 @@ public class OutboxEvent {
     public Map<String, Object> getPayload() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
+        // Use snake_case naming strategy for CloudEvents compliance
+        objectMapper.setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
         try {
             return objectMapper.readValue(eventData, Map.class);
         } catch (JsonProcessingException e) {

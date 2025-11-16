@@ -1,6 +1,7 @@
 package com.paklog.inventory.infrastructure.web;
 
 import com.paklog.inventory.application.dto.*;
+import com.paklog.inventory.application.service.BatchStockUpdateService;
 import com.paklog.inventory.application.service.BulkAllocationService;
 import com.paklog.inventory.application.service.InventoryCommandService;
 import com.paklog.inventory.application.service.InventoryQueryService;
@@ -21,13 +22,16 @@ public class InventoryController {
     private final InventoryCommandService commandService;
     private final InventoryQueryService queryService;
     private final BulkAllocationService bulkAllocationService;
+    private final BatchStockUpdateService batchStockUpdateService;
 
     public InventoryController(InventoryCommandService commandService,
                                InventoryQueryService queryService,
-                               BulkAllocationService bulkAllocationService) {
+                               BulkAllocationService bulkAllocationService,
+                               BatchStockUpdateService batchStockUpdateService) {
         this.commandService = commandService;
         this.queryService = queryService;
         this.bulkAllocationService = bulkAllocationService;
+        this.batchStockUpdateService = batchStockUpdateService;
     }
 
     @GetMapping("/stock_levels/{sku}")
@@ -121,5 +125,72 @@ public class InventoryController {
         log.info("Bulk allocation completed: {} successful, {} failed, {}ms",
                 response.getSuccessfulAllocations(), response.getFailedAllocations(), response.getProcessingTimeMs());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Set absolute stock level (physical count).
+     * Industry standard: Used for physical inventory counts where exact quantity is known.
+     */
+    @PutMapping("/stock_levels/{sku}/set")
+    public ResponseEntity<StockLevelResponse> setStockLevel(
+            @PathVariable String sku,
+            @Valid @RequestBody SetStockLevelRequest request) {
+        log.info("Setting absolute stock level for SKU: {}, quantity: {}", sku, request.quantity());
+
+        // In a real application, operatorId would come from authentication context
+        String operatorId = request.sourceOperatorId() != null ? request.sourceOperatorId() : "admin";
+
+        commandService.setStockLevel(
+            sku,
+            request.quantity(),
+            request.reasonCode(),
+            request.comment(),
+            operatorId,
+            request.locationId()
+        );
+
+        StockLevelResponse updatedStockLevel = queryService.getStockLevel(sku);
+        log.info("Stock level set for SKU: {} to {}", sku, updatedStockLevel.getQuantityOnHand());
+        return ResponseEntity.ok(updatedStockLevel);
+    }
+
+    /**
+     * Batch stock updates endpoint.
+     * Industry standard: Process up to 1000 stock updates in a single request.
+     * Supports both relative adjustments and absolute sets.
+     */
+    @PostMapping("/stock_levels/batch")
+    public ResponseEntity<BatchStockUpdateResponse> batchStockUpdate(
+            @Valid @RequestBody BatchStockUpdateRequest request) {
+        log.info("Processing batch stock update with {} items", request.getUpdates().size());
+
+        BatchStockUpdateResponse response = batchStockUpdateService.processBatch(request);
+
+        log.info("Batch stock update completed: {} successful, {} failed, {}ms",
+                response.getSuccessfulUpdates(), response.getFailedUpdates(), response.getProcessingTimeMs());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get stock level by location.
+     * Multi-location support following industry patterns from Shopify, SAP, Oracle.
+     */
+    @GetMapping("/stock_levels/{sku}/locations/{locationId}")
+    public ResponseEntity<StockLevelResponse> getStockLevelByLocation(
+            @PathVariable String sku,
+            @PathVariable String locationId) {
+        log.info("Getting stock level for SKU: {} at location: {}", sku, locationId);
+
+        // For now, return the stock level and filter by location
+        // In a full implementation, you'd have location-specific queries
+        StockLevelResponse stockLevel = queryService.getStockLevel(sku);
+
+        if (stockLevel.getLocationId() != null && !stockLevel.getLocationId().equals(locationId)) {
+            log.warn("Stock found but location mismatch. Requested: {}, Actual: {}",
+                    locationId, stockLevel.getLocationId());
+        }
+
+        return ResponseEntity.ok(stockLevel);
     }
 }

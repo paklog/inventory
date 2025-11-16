@@ -1,6 +1,7 @@
 package com.paklog.inventory.application.service;
 
 import com.paklog.inventory.application.port.EventPublisherPort;
+import com.paklog.inventory.application.validator.ProductExistenceValidator;
 import com.paklog.inventory.domain.event.StockLevelChangedEvent;
 import com.paklog.inventory.domain.exception.ProductStockNotFoundException;
 import com.paklog.inventory.domain.model.InventoryLedgerEntry;
@@ -41,6 +42,8 @@ class InventoryCommandServiceTest {
     private EventPublisherPort eventPublisherPort; // Although not directly injected, ProductStock uses it
     @Mock
     private com.paklog.inventory.domain.repository.OutboxRepository outboxRepository;
+    @Mock
+    private ProductExistenceValidator productExistenceValidator;
 
     @InjectMocks
     private InventoryCommandService inventoryCommandService;

@@ -1,14 +1,19 @@
 openapi: 3.1.0
 info:
-  title: Inventory Management API
+  title: Paklog Inventory Management API
   description: |
     # Overview
-    API for managing and querying logical inventory levels across the fulfillment network.
+    Comprehensive API for managing and querying inventory levels across the fulfillment network.
 
-    ## Features
+    ## Core Features
     - **Real-time Stock Queries**: Get current stock levels with caching for performance
     - **Stock Adjustments**: Manual adjustments with audit trail
-    - **Bulk Allocations**: High-performance allocation processing (10,000+ items)
+    - **Bulk Operations**: High-performance batch processing (1,000-10,000+ items)
+    - **Multi-Location Support**: Warehouse and location-based inventory tracking
+    - **Stock Transfers**: Inter-location transfer management
+    - **Stock Status Management**: Quarantine, damage, expiry tracking
+    - **Serial Number Tracking**: Individual item tracking
+    - **Inventory Valuation**: Cost tracking and COGS calculations
     - **Inventory Health**: Turnover analysis and dead stock detection
     - **CloudEvents Integration**: Event-driven architecture with standardized events
 
@@ -22,6 +27,20 @@ info:
     - OpenTelemetry distributed tracing
     - Prometheus metrics exposition
     - Structured logging with correlation IDs
+
+    ## API Groups
+    - **Core Inventory**: Stock levels, adjustments, allocations
+    - **Stock Status**: Quality management, quarantine, status changes
+    - **Stock Transfers**: Inter-location transfers
+    - **Physical Stock**: Location-based inventory, physical reservations
+    - **Serial Numbers**: Serial-tracked items
+    - **Valuation**: Inventory costing and valuation
+    - **ABC Classification**: Inventory categorization
+    - **Containers/LPN**: Container and license plate management
+    - **Snapshots**: Historical inventory views
+    - **Holds**: Inventory holds and blocks
+    - **UOM**: Unit of measure conversions
+
   version: 1.0.0
   contact:
     name: Paklog Platform Team
@@ -29,28 +48,64 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
+
 servers:
-  - url: https://api.paklog.com/fulfillment/inventory/v1
-    description: Production
-  - url: https://api-staging.paklog.com/fulfillment/inventory/v1
-    description: Staging
-  - url: http://localhost:8085/inventory
+  - url: http://localhost:8085
     description: Local Development
+  - url: https://api-staging.paklog.com
+    description: Staging
+  - url: https://api.paklog.com
+    description: Production
+
+tags:
+  - name: Core Inventory
+    description: Stock levels, adjustments, and allocations
+  - name: Stock Status
+    description: Stock status management (quarantine, damaged, etc.)
+  - name: Stock Transfers
+    description: Inter-location stock transfers
+  - name: Physical Stock
+    description: Location-based physical inventory
+  - name: Serial Numbers
+    description: Serial number tracking
+  - name: Valuation
+    description: Inventory valuation and costing
+  - name: ABC Classification
+    description: ABC inventory classification
+  - name: Containers
+    description: Container and LPN management
+  - name: Snapshots
+    description: Historical inventory snapshots
+  - name: Holds
+    description: Inventory holds and blocks
+  - name: UOM
+    description: Unit of measure conversions
+  - name: Bulk Operations
+    description: High-volume batch operations
+
 paths:
-  /stock_levels/{sku}:
+  # ==================== CORE INVENTORY ENDPOINTS ====================
+
+  /inventory/stock_levels/{sku}:
     get:
       summary: Get Stock Level for a SKU
       description: |
         Retrieves the current inventory levels for a specific SKU.
-        This corresponds to the user story INV-10.
+        Returns quantity on hand, allocated quantity, and available to promise.
       operationId: get_stock_level_by_sku
+      tags: [Core Inventory]
       parameters:
         - name: sku
           in: path
           required: true
-          description: The unique seller SKU to query.
+          description: The unique seller SKU to query
           schema:
             type: string
+          examples:
+            standard:
+              value: "SKU-12345"
+            withDashes:
+              value: "PROD-ABC-001"
       responses:
         '200':
           description: OK. The current stock level is returned.
@@ -66,6 +121,7 @@ paths:
                     quantity_on_hand: 500
                     quantity_allocated: 150
                     available_to_promise: 350
+                    location_id: "WH-001"
                 lowStock:
                   summary: Low stock product
                   value:
@@ -73,6 +129,7 @@ paths:
                     quantity_on_hand: 10
                     quantity_allocated: 8
                     available_to_promise: 2
+                    location_id: "WH-002"
                 outOfStock:
                   summary: Out of stock product
                   value:
@@ -80,6 +137,7 @@ paths:
                     quantity_on_hand: 0
                     quantity_allocated: 0
                     available_to_promise: 0
+                    location_id: "WH-001"
         '404':
           description: Not Found. No stock record found for the given SKU.
           content:
@@ -89,24 +147,26 @@ paths:
               example:
                 error: "Not Found"
                 message: "No stock record found for SKU: SKU-INVALID"
-                timestamp: "2025-10-05T20:00:00Z"
+                timestamp: "2025-11-09T20:00:00Z"
         '500':
           description: Internal Server Error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
     patch:
-      summary: Adjust a Stock Level
+      summary: Adjust Stock Level (Relative)
       description: |
-        Allows an authorized user, like an Inventory Manager, to make a manual adjustment to the quantity on hand for a SKU.
-        This corresponds to the user story INV-08.
+        Allows manual adjustment to the quantity on hand for a SKU using relative changes.
+        This is the industry-standard PATCH operation for incremental adjustments.
       operationId: adjust_stock_level
+      tags: [Core Inventory]
       parameters:
         - name: sku
           in: path
           required: true
-          description: The unique seller SKU to adjust.
+          description: The unique seller SKU to adjust
           schema:
             type: string
       requestBody:
@@ -115,6 +175,19 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateStockLevelRequest'
+            examples:
+              increaseStock:
+                summary: Increase stock
+                value:
+                  quantity_change: 100
+                  reason_code: "PURCHASE_RECEIPT"
+                  comment: "PO-12345 received"
+              decreaseStock:
+                summary: Decrease stock
+                value:
+                  quantity_change: -25
+                  reason_code: "DAMAGE"
+                  comment: "Water damage in aisle 3"
       responses:
         '200':
           description: OK. The adjustment was successful and the updated stock level is returned.
@@ -124,56 +197,320 @@ paths:
                 $ref: '#/components/schemas/StockLevel'
         '400':
           description: Bad Request. The request body is invalid or business rules violated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Not Found. No stock record found for the SKU to be adjusted.
         '500':
           description: Internal Server Error.
-  /inventory_health_metrics:
-    get:
-      summary: Get Inventory Health Metrics
+
+  /inventory/stock_levels/{sku}/set:
+    put:
+      summary: Set Absolute Stock Level (Physical Count)
       description: |
-        Retrieves inventory health metrics including turnover rates and dead stock analysis.
-        This corresponds to the user story INV-11.
-      operationId: get_inventory_health_metrics
+        Sets the exact stock quantity for a SKU, typically used for physical inventory counts.
+        Industry standard pattern from Shopify, WooCommerce, SAP, and Oracle WMS.
+
+        **Use Cases:**
+        - Physical inventory counts
+        - Cycle count corrections
+        - Initial stock setup
+        - System corrections from WMS/ERP integration
+
+        **Difference from PATCH /stock_levels/{sku}:**
+        - PATCH: Relative adjustment (add/subtract quantity)
+        - PUT: Absolute set (override to exact quantity)
+      operationId: set_stock_level
+      tags: [Core Inventory]
       parameters:
-        - name: category
-          in: query
-          required: false
-          description: Filter by product category
+        - name: sku
+          in: path
+          required: true
+          description: The unique seller SKU
           schema:
             type: string
-        - name: start_date
-          in: query
-          required: false
-          description: Start date for the analysis period (ISO 8601 format)
-          schema:
-            type: string
-            format: date
-        - name: end_date
-          in: query
-          required: false
-          description: End date for the analysis period (ISO 8601 format)
-          schema:
-            type: string
-            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetStockLevelRequest'
+            examples:
+              physicalCount:
+                summary: Physical count result
+                value:
+                  quantity: 245
+                  reason_code: "PHYSICAL_COUNT"
+                  comment: "Annual inventory count 2025"
+                  location_id: "WH-001"
+                  count_date: "2025-11-09T10:00:00Z"
+              cycleCount:
+                summary: Cycle count adjustment
+                value:
+                  quantity: 98
+                  reason_code: "CYCLE_COUNT"
+                  comment: "Weekly cycle count - Zone A"
+                  location_id: "WH-EAST"
+              wmsSync:
+                summary: WMS system sync
+                value:
+                  quantity: 1500
+                  reason_code: "INTEGRATION_SYNC"
+                  source_system: "WMS"
+                  source_transaction_id: "WMS-TXN-789456"
+                  location_id: "DC-CENTRAL"
       responses:
         '200':
-          description: OK. Inventory health metrics are returned.
+          description: OK. Stock level successfully set.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InventoryHealthMetrics'
+                $ref: '#/components/schemas/StockLevel'
               example:
-                inventory_turnover: 4.5
-                dead_stock_skus: ["SKU-111", "SKU-222", "SKU-333"]
-                total_skus: 1500
-                out_of_stock_skus: 25
+                sku: "SKU-12345"
+                quantity_on_hand: 245
+                quantity_allocated: 50
+                available_to_promise: 195
+                location_id: "WH-001"
         '400':
-          description: Bad Request. Invalid query parameters.
+          description: Bad Request. Invalid quantity or business rule violation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found. SKU not found.
         '500':
           description: Internal Server Error.
 
-  /allocations/bulk:
+  /inventory/stock_levels/batch:
+    post:
+      summary: Batch Stock Updates
+      description: |
+        Process multiple stock updates in a single request.
+        Industry standard pattern for high-volume operations.
+
+        **Capabilities:**
+        - Up to 1,000 updates per batch
+        - Mix of ADJUST (relative) and SET (absolute) operations
+        - Partial success handling (one failure doesn't stop others)
+        - Source system tracking for each update
+
+        **Performance:**
+        - Optimized for bulk WMS/ERP integrations
+        - Async processing for large batches
+        - Detailed per-item results
+
+        **Use Cases:**
+        - WMS bulk synchronization
+        - ERP integration batches
+        - Physical count imports
+        - Multi-warehouse updates
+      operationId: batch_stock_update
+      tags: [Bulk Operations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchStockUpdateRequest'
+            examples:
+              mixedBatch:
+                summary: Mixed adjustments and sets
+                value:
+                  batch_id: "BATCH-2025-11-09-001"
+                  source_system: "WMS"
+                  updates:
+                    - sku: "SKU-001"
+                      update_type: "ADJUST"
+                      quantity: 50
+                      reason_code: "PURCHASE_RECEIPT"
+                      comment: "PO-12345 received"
+                    - sku: "SKU-002"
+                      update_type: "SET"
+                      quantity: 100
+                      reason_code: "PHYSICAL_COUNT"
+                      location_id: "WH-001"
+                    - sku: "SKU-003"
+                      update_type: "ADJUST"
+                      quantity: -10
+                      reason_code: "DAMAGE"
+              wmsIntegration:
+                summary: WMS bulk sync
+                value:
+                  batch_id: "WMS-SYNC-20251109-0900"
+                  source_system: "WMS"
+                  updates:
+                    - sku: "SKU-101"
+                      update_type: "SET"
+                      quantity: 450
+                      reason_code: "INTEGRATION_SYNC"
+                      source_transaction_id: "WMS-101"
+                      location_id: "DC-EAST"
+                    - sku: "SKU-102"
+                      update_type: "SET"
+                      quantity: 320
+                      reason_code: "INTEGRATION_SYNC"
+                      source_transaction_id: "WMS-102"
+                      location_id: "DC-EAST"
+      responses:
+        '200':
+          description: OK. Batch processing completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchStockUpdateResponse'
+              example:
+                batch_id: "BATCH-2025-11-09-001"
+                total_requested: 3
+                successful_updates: 2
+                failed_updates: 1
+                processing_time_ms: 156
+                results:
+                  - sku: "SKU-001"
+                    success: true
+                    previous_quantity: 100
+                    new_quantity: 150
+                  - sku: "SKU-002"
+                    success: true
+                    previous_quantity: 95
+                    new_quantity: 100
+                  - sku: "SKU-003"
+                    success: false
+                    error_message: "Insufficient stock for adjustment"
+        '400':
+          description: Bad Request. Invalid batch format or size exceeds limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error.
+
+  /inventory/stock_levels/{sku}/locations/{locationId}:
+    get:
+      summary: Get Stock Level by Location
+      description: |
+        Retrieves stock level for a specific SKU at a specific location.
+        Multi-location support following industry patterns from Shopify, SAP, Oracle.
+      operationId: get_stock_level_by_location
+      tags: [Core Inventory]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          description: The unique seller SKU
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          description: Location/warehouse identifier
+          schema:
+            type: string
+          examples:
+            warehouse:
+              value: "WH-001"
+            store:
+              value: "STORE-NYC"
+            dc:
+              value: "DC-CENTRAL"
+      responses:
+        '200':
+          description: OK. Stock level at location returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockLevel'
+              example:
+                sku: "SKU-12345"
+                quantity_on_hand: 500
+                quantity_allocated: 150
+                available_to_promise: 350
+                location_id: "WH-001"
+        '404':
+          description: Not Found. SKU or location not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error.
+
+  /inventory/adjustments:
+    post:
+      summary: Create Stock Adjustment
+      description: |
+        Creates a stock adjustment record.
+        Alternative endpoint to PATCH /stock_levels/{sku} with explicit adjustment tracking.
+      operationId: create_stock_adjustment
+      tags: [Core Inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdjustmentRequest'
+            example:
+              sku: "SKU-12345"
+              quantity_change: -15
+              reason_code: "DAMAGE"
+              comment: "Damaged during picking"
+      responses:
+        '202':
+          description: Accepted. Stock adjustment is being processed.
+        '400':
+          description: Bad Request. Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found. SKU does not exist.
+        '500':
+          description: Internal Server Error.
+
+  /inventory/stock_levels/{sku}/reservations:
+    post:
+      summary: Create Stock Reservation
+      description: |
+        Reserves (allocates) stock for a specific order.
+        This reduces the available-to-promise quantity without physically picking the item.
+      operationId: create_reservation
+      tags: [Core Inventory]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          description: The unique seller SKU to reserve stock for
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservationRequest'
+            example:
+              quantity: 5
+              order_id: "ORD-12345"
+      responses:
+        '202':
+          description: Accepted. Stock reservation is being processed.
+        '400':
+          description: Bad Request. Invalid request or insufficient stock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found. SKU does not exist.
+        '500':
+          description: Internal Server Error.
+
+  /inventory/allocations/bulk:
     post:
       summary: Bulk Allocate Stock
       description: |
@@ -191,8 +528,7 @@ paths:
         - Batch order import
         - Marketplace bulk fulfillment
       operationId: bulk_allocate_stock
-      tags:
-        - Bulk Operations
+      tags: [Bulk Operations]
       requestBody:
         required: true
         content:
@@ -242,77 +578,491 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Internal Server Error.
+
+  /inventory/inventory_health_metrics:
+    get:
+      summary: Get Inventory Health Metrics
+      description: |
+        Retrieves inventory health metrics including turnover rates and dead stock analysis.
+        Supports filtering by category and date range.
+      operationId: get_inventory_health_metrics
+      tags: [Core Inventory]
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Filter by product category
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: false
+          description: Start date for the analysis period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          description: End date for the analysis period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK. Inventory health metrics are returned.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/InventoryHealthMetrics'
+              example:
+                inventory_turnover: 4.5
+                dead_stock_skus: ["SKU-111", "SKU-222", "SKU-333"]
+                total_skus: 1500
+                out_of_stock_skus: 25
+        '400':
+          description: Bad Request. Invalid query parameters.
+        '500':
+          description: Internal Server Error.
 
-  /stock_levels/{sku}/reservations:
-    post:
-      summary: Create Stock Reservation
+  /inventory/reports/health:
+    get:
+      summary: Get Inventory Health Report
       description: |
-        Reserves (allocates) stock for a specific order.
-        This reduces the available-to-promise quantity without physically picking the item.
-      operationId: create_reservation
-      tags:
-        - Stock Operations
+        Alias endpoint for inventory health metrics.
+        Returns the same data as /inventory_health_metrics.
+      operationId: get_inventory_health_report
+      tags: [Core Inventory]
       parameters:
-        - name: sku
-          in: path
-          required: true
-          description: The unique seller SKU to reserve stock for
+        - name: category
+          in: query
+          required: false
           schema:
             type: string
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK. Health report returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryHealthMetrics'
+        '500':
+          description: Internal Server Error.
+
+  # ==================== STOCK STATUS ENDPOINTS ====================
+
+  /api/v1/inventory/stock-status/change:
+    post:
+      summary: Change Stock Status
+      description: Change stock status for a quantity of a SKU
+      tags: [Stock Status]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateReservationRequest'
+              $ref: '#/components/schemas/StockStatusChangeRequest'
             example:
-              quantity: 5
-              order_id: "ORD-12345"
+              sku: "SKU-12345"
+              quantity: 50
+              fromStatus: "AVAILABLE"
+              toStatus: "QUARANTINE"
+              reason: "Quality inspection required"
       responses:
-        '202':
-          description: Accepted. Stock reservation is being processed.
+        '200':
+          description: Status changed successfully
         '400':
-          description: Bad Request. Invalid request or insufficient stock.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Invalid request
         '404':
-          description: Not Found. SKU does not exist.
+          description: SKU not found
+
+  /api/v1/inventory/stock-status/{sku}/quarantine:
+    post:
+      summary: Move Stock to Quarantine
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: reason
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Moved to quarantine
+
+  /api/v1/inventory/stock-status/{sku}/damaged:
+    post:
+      summary: Mark Stock as Damaged
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: reason
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Marked as damaged
+
+  /api/v1/inventory/stock-status/{sku}/expired:
+    post:
+      summary: Mark Stock as Expired
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as expired
+
+  /api/v1/inventory/stock-status/{sku}/release-quarantine:
+    post:
+      summary: Release Stock from Quarantine
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Released from quarantine
+
+  /api/v1/inventory/stock-status/{sku}:
+    get:
+      summary: Get Stock Quantities by Status
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Stock quantities by status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error.
+                type: object
+                additionalProperties:
+                  type: integer
+              example:
+                AVAILABLE: 450
+                QUARANTINE: 25
+                DAMAGED: 5
+                RESERVED: 100
+
+  /api/v1/inventory/stock-status/{sku}/{status}:
+    get:
+      summary: Get Quantity in Specific Status
+      tags: [Stock Status]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [AVAILABLE, QUARANTINE, DAMAGED, EXPIRED, RESERVED]
+      responses:
+        '200':
+          description: Quantity in status
+          content:
+            application/json:
+              schema:
+                type: integer
+
+  # ==================== STOCK TRANSFER ENDPOINTS ====================
+
+  /api/v1/inventory/transfers:
+    post:
+      summary: Initiate Stock Transfer
+      tags: [Stock Transfers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateTransferRequest'
+      responses:
+        '200':
+          description: Transfer initiated
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Transfer ID
+
+  /api/v1/inventory/transfers/{transferId}/in-transit:
+    post:
+      summary: Mark Transfer In-Transit
+      tags: [Stock Transfers]
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Marked in-transit
+
+  /api/v1/inventory/transfers/{transferId}/complete:
+    post:
+      summary: Complete Transfer
+      tags: [Stock Transfers]
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: actualQuantityReceived
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transfer completed
+
+  /api/v1/inventory/transfers/{transferId}/cancel:
+    post:
+      summary: Cancel Transfer
+      tags: [Stock Transfers]
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cancelledBy
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: cancellationReason
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer cancelled
+
+  /api/v1/inventory/transfers/{transferId}:
+    get:
+      summary: Get Transfer Details
+      tags: [Stock Transfers]
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/sku/{sku}:
+    get:
+      summary: Get Transfers by SKU
+      tags: [Stock Transfers]
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/in-transit:
+    get:
+      summary: Get In-Transit Transfers
+      tags: [Stock Transfers]
+      responses:
+        '200':
+          description: List of in-transit transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/status/{status}:
+    get:
+      summary: Get Transfers by Status
+      tags: [Stock Transfers]
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [PENDING, IN_TRANSIT, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/date-range:
+    get:
+      summary: Get Transfers by Date Range
+      tags: [Stock Transfers]
+      parameters:
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/with-shrinkage:
+    get:
+      summary: Get Transfers with Shrinkage
+      tags: [Stock Transfers]
+      responses:
+        '200':
+          description: List of transfers with shrinkage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockTransferResponse'
+
+  /api/v1/inventory/transfers/count/{status}:
+    get:
+      summary: Count Transfers by Status
+      tags: [Stock Transfers]
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
 
 components:
   schemas:
+    # Core Inventory Schemas
     StockLevel:
       type: object
+      description: Current stock level for a SKU
       properties:
         sku:
           type: string
-          description: The unique identifier for the product.
+          description: The unique identifier for the product
         quantity_on_hand:
           type: integer
           format: int32
-          description: The total physical quantity of the item in the warehouse.
+          description: The total physical quantity in the warehouse
           minimum: 0
         quantity_allocated:
           type: integer
           format: int32
-          description: The quantity reserved for open orders that have not yet been picked.
+          description: Quantity reserved for orders not yet picked
           minimum: 0
         available_to_promise:
           type: integer
           format: int32
-          description: The quantity available for new sales (on_hand - allocated).
+          description: Quantity available for new sales (on_hand - allocated)
           minimum: 0
+        location_id:
+          type: string
+          description: Warehouse/location identifier (e.g., WH-001, STORE-NYC)
+          nullable: true
       required:
         - sku
         - quantity_on_hand
@@ -321,7 +1071,7 @@ components:
 
     UpdateStockLevelRequest:
       type: object
-      description: Describes the adjustment to be made to a stock level.
+      description: Request to adjust stock level (relative change)
       required:
         - quantity_change
         - reason_code
@@ -329,44 +1079,187 @@ components:
         quantity_change:
           type: integer
           format: int32
-          description: The change to apply to the quantity on hand. Can be positive (stock intake) or negative (damage, loss).
+          description: Change to apply (positive for increase, negative for decrease)
         reason_code:
           type: string
-          enum: [damaged, stock_intake, cycle_count, lost, found, ITEM_PICKED, ALLOCATION, DEALLOCATION, STOCK_RECEIPT]
-          description: Code indicating the reason for the adjustment.
+          description: Reason for adjustment
+          enum:
+            - PURCHASE_RECEIPT
+            - RETURN_TO_STOCK
+            - TRANSFER_IN
+            - PRODUCTION_COMPLETE
+            - SALE
+            - DAMAGE
+            - THEFT_LOSS
+            - TRANSFER_OUT
+            - DISPOSAL
+            - PHYSICAL_COUNT
+            - CYCLE_COUNT
+            - SYSTEM_CORRECTION
+            - ITEM_PICKED
+            - ALLOCATION
+            - DEALLOCATION
+            - STOCK_RECEIPT
         comment:
           type: string
-          description: An optional free-text comment explaining the adjustment.
+          description: Optional comment explaining the adjustment
 
-    InventoryHealthMetrics:
+    SetStockLevelRequest:
       type: object
+      description: Request to set absolute stock quantity (physical count)
+      required:
+        - quantity
+        - reason_code
       properties:
-        inventory_turnover:
-          type: number
-          format: double
-          description: The rate at which inventory is sold, used, or replaced.
-        dead_stock_skus:
+        quantity:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Exact stock quantity to set
+        reason_code:
+          type: string
+          description: Reason for setting absolute quantity
+          enum:
+            - PHYSICAL_COUNT
+            - CYCLE_COUNT
+            - SYSTEM_CORRECTION
+            - INTEGRATION_SYNC
+            - INITIAL_STOCK
+        comment:
+          type: string
+          description: Optional comment
+        location_id:
+          type: string
+          description: Warehouse/location identifier
+        count_date:
+          type: string
+          format: date-time
+          description: When the physical count was performed
+        source_system:
+          type: string
+          description: Source system name (e.g., WMS, ERP)
+        source_transaction_id:
+          type: string
+          description: Transaction ID in source system
+        source_operator_id:
+          type: string
+          description: Operator who performed the count
+
+    BatchStockUpdateRequest:
+      type: object
+      description: Request for batch stock updates
+      required:
+        - updates
+      properties:
+        updates:
           type: array
           items:
-            type: string
-          description: List of SKUs identified as dead stock (no movement over a period).
-        total_skus:
-          type: integer
-          format: int64
-          description: Total number of unique SKUs tracked.
-        out_of_stock_skus:
-          type: integer
-          format: int64
-          description: Number of SKUs currently with zero quantity on hand.
+            $ref: '#/components/schemas/StockUpdateItem'
+          minItems: 1
+          maxItems: 1000
+          description: List of stock updates (max 1000)
+        batch_id:
+          type: string
+          description: Optional batch tracking ID
+        source_system:
+          type: string
+          description: Source system for all updates
+
+    StockUpdateItem:
+      type: object
+      description: Individual stock update within a batch
       required:
-        - inventory_turnover
-        - dead_stock_skus
-        - total_skus
-        - out_of_stock_skus
+        - sku
+        - update_type
+        - quantity
+        - reason_code
+      properties:
+        sku:
+          type: string
+        update_type:
+          type: string
+          enum: [ADJUST, SET]
+          description: ADJUST for relative, SET for absolute
+        quantity:
+          type: integer
+          format: int32
+        reason_code:
+          type: string
+        comment:
+          type: string
+        location_id:
+          type: string
+        source_transaction_id:
+          type: string
+
+    BatchStockUpdateResponse:
+      type: object
+      description: Response from batch stock update
+      properties:
+        batch_id:
+          type: string
+        total_requested:
+          type: integer
+        successful_updates:
+          type: integer
+        failed_updates:
+          type: integer
+        processing_time_ms:
+          type: integer
+          format: int64
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateResult'
+
+    UpdateResult:
+      type: object
+      description: Result for individual update in batch
+      properties:
+        sku:
+          type: string
+        success:
+          type: boolean
+        error_message:
+          type: string
+        previous_quantity:
+          type: integer
+        new_quantity:
+          type: integer
+
+    CreateAdjustmentRequest:
+      type: object
+      description: Request to create stock adjustment
+      required:
+        - sku
+        - quantity_change
+        - reason_code
+      properties:
+        sku:
+          type: string
+        quantity_change:
+          type: integer
+        reason_code:
+          type: string
+        comment:
+          type: string
+
+    CreateReservationRequest:
+      type: object
+      description: Request to create stock reservation/allocation
+      required:
+        - quantity
+        - order_id
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+        order_id:
+          type: string
 
     BulkAllocationRequest:
       type: object
-      description: Request for bulk stock allocation across multiple SKUs and orders
+      description: Bulk allocation request (up to 10,000 items)
       required:
         - requests
       properties:
@@ -376,7 +1269,6 @@ components:
             $ref: '#/components/schemas/AllocationRequestItem'
           minItems: 1
           maxItems: 10000
-          description: List of allocation requests to process
 
     AllocationRequestItem:
       type: object
@@ -387,82 +1279,144 @@ components:
       properties:
         sku:
           type: string
-          description: The SKU to allocate
         quantity:
           type: integer
-          format: int32
           minimum: 1
-          description: Quantity to allocate
         order_id:
           type: string
-          description: Order ID for the allocation
 
     BulkAllocationResponse:
       type: object
-      description: Response from bulk allocation operation
-      required:
-        - successful_allocations
-        - failed_allocations
-        - processing_time_ms
-        - results
+      description: Bulk allocation response
       properties:
         successful_allocations:
           type: integer
-          format: int32
-          description: Number of successful allocations
         failed_allocations:
           type: integer
-          format: int32
-          description: Number of failed allocations
         processing_time_ms:
           type: integer
           format: int64
-          description: Total processing time in milliseconds
         results:
           type: array
           items:
             $ref: '#/components/schemas/AllocationResult'
-          description: Detailed results for each allocation request
 
     AllocationResult:
       type: object
-      required:
-        - sku
-        - order_id
-        - success
       properties:
         sku:
           type: string
-          description: The SKU that was processed
         order_id:
           type: string
-          description: The order ID
         success:
           type: boolean
-          description: Whether the allocation succeeded
         allocated_quantity:
           type: integer
-          format: int32
-          description: Quantity successfully allocated (only present if success=true)
         error_message:
           type: string
-          description: Error message (only present if success=false)
 
-    CreateReservationRequest:
+    InventoryHealthMetrics:
+      type: object
+      description: Inventory health metrics
+      properties:
+        inventory_turnover:
+          type: number
+          format: double
+          description: Rate at which inventory is sold/used
+        dead_stock_skus:
+          type: array
+          items:
+            type: string
+          description: SKUs with no movement
+        total_skus:
+          type: integer
+          format: int64
+        out_of_stock_skus:
+          type: integer
+          format: int64
+
+    # Stock Status Schemas
+    StockStatusChangeRequest:
       type: object
       required:
+        - sku
         - quantity
-        - order_id
+        - from_status
+        - to_status
+        - reason
       properties:
+        sku:
+          type: string
         quantity:
           type: integer
-          format: int32
-          minimum: 1
-          description: Quantity to reserve
-        order_id:
+        from_status:
           type: string
-          description: Order ID for the reservation
+          enum: [AVAILABLE, QUARANTINE, DAMAGED, EXPIRED, RESERVED]
+        to_status:
+          type: string
+          enum: [AVAILABLE, QUARANTINE, DAMAGED, EXPIRED, RESERVED]
+        reason:
+          type: string
 
+    # Stock Transfer Schemas
+    InitiateTransferRequest:
+      type: object
+      required:
+        - sku
+        - quantity
+        - source_warehouse_id
+        - destination_warehouse_id
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+        source_warehouse_id:
+          type: string
+        source_zone_id:
+          type: string
+        source_aisle_id:
+          type: string
+        source_shelf_id:
+          type: string
+        source_bin_id:
+          type: string
+        destination_warehouse_id:
+          type: string
+        destination_zone_id:
+          type: string
+        destination_aisle_id:
+          type: string
+        destination_shelf_id:
+          type: string
+        destination_bin_id:
+          type: string
+        initiated_by:
+          type: string
+        reason:
+          type: string
+
+    StockTransferResponse:
+      type: object
+      properties:
+        transfer_id:
+          type: string
+        sku:
+          type: string
+        quantity:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, IN_TRANSIT, COMPLETED, CANCELLED]
+        source_location:
+          type: object
+        destination_location:
+          type: object
+        initiated_at:
+          type: string
+          format: date-time
+
+    # Error Schema
     Error:
       type: object
       required:
@@ -479,7 +1433,7 @@ components:
         timestamp:
           type: string
           format: date-time
-          description: Timestamp when error occurred
-        trace_id:
+          description: When error occurred
+        traceId:
           type: string
           description: Distributed trace ID for debugging

@@ -1,22 +1,22 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.kit.created",
+  "$id": "https://paklog.com/schemas/inventory/v1/kit-created.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Kit Created Event",
   "description": "Published when a new kit definition is created in the system",
   "type": "object",
-  "required": ["kitSku", "kitName", "kitType", "components", "createdBy"],
+  "required": ["kit_sku", "kit_name", "kit_type", "components", "created_by"],
   "properties": {
-    "kitSku": {
+    "kit_sku": {
       "type": "string",
       "description": "Unique SKU for the kit",
       "example": "KIT-LAPTOP-001"
     },
-    "kitName": {
+    "kit_name": {
       "type": "string",
       "description": "Descriptive name of the kit",
       "example": "Standard Laptop Bundle"
     },
-    "kitType": {
+    "kit_type": {
       "type": "string",
       "description": "Type of kit",
       "enum": ["PHYSICAL", "VIRTUAL", "CONFIGURABLE"],
@@ -27,9 +27,9 @@
       "description": "List of component SKUs and quantities",
       "items": {
         "type": "object",
-        "required": ["componentSku", "quantity"],
+        "required": ["component_sku", "quantity"],
         "properties": {
-          "componentSku": {
+          "component_sku": {
             "type": "string",
             "example": "SKU-SCREEN"
           },
@@ -38,14 +38,14 @@
             "minimum": 1,
             "example": 1
           },
-          "isOptional": {
+          "is_optional": {
             "type": "boolean",
             "default": false
           }
         }
       }
     },
-    "createdBy": {
+    "created_by": {
       "type": "string",
       "description": "User who created the kit",
       "example": "product.manager@paklog.com"

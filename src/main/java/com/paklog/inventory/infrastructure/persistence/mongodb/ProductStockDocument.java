@@ -27,15 +27,15 @@ public class ProductStockDocument {
 
     @Id
     private String sku;
-    private int quantityOnHand;
+
     private int quantityAllocated;
     private LocalDateTime lastUpdated;
 
     @Version
     private Long version; // Optimistic locking version
 
-    // Phase 1 fields
-    private Map<String, Integer> stockByStatus; // StockStatus -> quantity
+    // stockByStatus is the SOURCE OF TRUTH for quantity on hand
+    private Map<String, Integer> stockByStatus; // StockStatus -> quantity (SOURCE OF TRUTH)
     private List<InventoryHoldDocument> holds;
     private boolean serialTracked;
     private List<String> serialNumberIds; // References to SerialNumber collection
@@ -47,35 +47,47 @@ public class ProductStockDocument {
     // Existing lot tracking (already in domain)
     private List<LotBatchDocument> lotBatches;
 
-    public ProductStockDocument() {
-    }
+    // Multi-location support
+    @Indexed
+    private String locationId;
 
-    public ProductStockDocument(String sku, int quantityOnHand, int quantityAllocated, LocalDateTime lastUpdated) {
-        this.sku = sku;
-        this.quantityOnHand = quantityOnHand;
-        this.quantityAllocated = quantityAllocated;
-        this.lastUpdated = lastUpdated;
+    public ProductStockDocument() {
         this.stockByStatus = new HashMap<>();
         this.holds = new ArrayList<>();
         this.serialNumberIds = new ArrayList<>();
         this.lotBatches = new ArrayList<>();
     }
 
-    public static ProductStockDocument fromDomain(ProductStock productStock) {
-        ProductStockDocument doc = new ProductStockDocument(
-                productStock.getSku(),
-                productStock.getQuantityOnHand(),
-                productStock.getQuantityAllocated(),
-                productStock.getLastUpdated()
-        );
-        doc.setVersion(productStock.getVersion());
+    public ProductStockDocument(String sku, Map<String, Integer> stockByStatus, int quantityAllocated, LocalDateTime lastUpdated) {
+        this.sku = sku;
+        this.stockByStatus = stockByStatus != null ? new HashMap<>(stockByStatus) : new HashMap<>();
+        this.quantityAllocated = quantityAllocated;
+        this.lastUpdated = lastUpdated;
+        this.holds = new ArrayList<>();
+        this.serialNumberIds = new ArrayList<>();
+        this.lotBatches = new ArrayList<>();
+    }
 
-        // Map stock status quantities
-        doc.stockByStatus = productStock.getStockByStatus().entrySet().stream()
+    public static ProductStockDocument fromDomain(ProductStock productStock) {
+        // Map stock status quantities - stockByStatus is SOURCE OF TRUTH
+        Map<String, Integer> statusMap = productStock.getStockByStatus().entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> e.getKey().name(),
                         e -> e.getValue().getQuantity()
                 ));
+
+        // If stockByStatus is empty but we have quantity, default to AVAILABLE
+        if (statusMap.isEmpty() && productStock.getQuantityOnHand() > 0) {
+            statusMap.put("AVAILABLE", productStock.getQuantityOnHand());
+        }
+
+        ProductStockDocument doc = new ProductStockDocument(
+                productStock.getSku(),
+                statusMap,
+                productStock.getQuantityAllocated(),
+                productStock.getLastUpdated()
+        );
+        doc.setVersion(productStock.getVersion());
 
         // Map holds
         doc.holds = productStock.getHolds().stream()
@@ -101,23 +113,74 @@ public class ProductStockDocument {
                 .map(LotBatchDocument::fromDomain)
                 .collect(Collectors.toList());
 
+        // Map location
+        doc.locationId = productStock.getLocationId();
+
         return doc;
     }
 
     public ProductStock toDomain() {
-        ProductStock productStock = ProductStock.load(
+        // Convert stock by status map - SOURCE OF TRUTH
+        Map<StockStatus, StockStatusQuantity> domainStockByStatus = new HashMap<>();
+        if (this.stockByStatus != null && !this.stockByStatus.isEmpty()) {
+            for (Map.Entry<String, Integer> entry : this.stockByStatus.entrySet()) {
+                StockStatus status = StockStatus.valueOf(entry.getKey());
+                domainStockByStatus.put(status, StockStatusQuantity.of(status, entry.getValue()));
+            }
+        }
+
+        // Derive quantityOnHand from stockByStatus (source of truth)
+        int derivedQuantityOnHand = domainStockByStatus.values().stream()
+                .mapToInt(StockStatusQuantity::getQuantity)
+                .sum();
+
+        // Convert holds
+        List<InventoryHold> domainHolds = new ArrayList<>();
+        if (this.holds != null) {
+            domainHolds = this.holds.stream()
+                    .map(InventoryHoldDocument::toDomain)
+                    .collect(Collectors.toList());
+        }
+
+        // Convert lot batches
+        List<LotBatch> domainLotBatches = new ArrayList<>();
+        if (this.lotBatches != null) {
+            domainLotBatches = this.lotBatches.stream()
+                    .map(LotBatchDocument::toDomain)
+                    .collect(Collectors.toList());
+        }
+
+        // Convert valuation (if present)
+        InventoryValuation domainValuation = null;
+        if (this.valuation != null) {
+            domainValuation = this.valuation.toDomain(this.sku);
+        }
+
+        // Convert ABC classification (if present)
+        ABCClassification domainAbcClassification = null;
+        if (this.abcClassification != null) {
+            domainAbcClassification = this.abcClassification.toDomain(this.sku);
+        }
+
+        // Note: Serial numbers are stored as IDs only (references to SerialNumber collection)
+        // Full serial number reconstruction requires a separate repository lookup
+        List<SerialNumber> domainSerialNumbers = new ArrayList<>();
+
+        return ProductStock.loadComplete(
                 this.sku,
-                this.quantityOnHand,
+                derivedQuantityOnHand,  // Derived from stockByStatus
                 this.quantityAllocated,
-                this.lastUpdated
+                this.lastUpdated,
+                this.version,
+                domainStockByStatus,
+                domainHolds,
+                this.serialTracked,
+                domainSerialNumbers,
+                domainValuation,
+                domainAbcClassification,
+                domainLotBatches,
+                this.locationId
         );
-
-        // Note: Full reconstruction with all fields would require
-        // a more comprehensive load method in ProductStock.
-        // For now, this provides basic reconstruction.
-        // In production, you'd likely add a richer factory method.
-
-        return productStock;
     }
 
     public String getSku() {
@@ -128,12 +191,16 @@ public class ProductStockDocument {
         this.sku = sku;
     }
 
+    /**
+     * Get quantity on hand - derived from stockByStatus (source of truth).
+     */
     public int getQuantityOnHand() {
-        return quantityOnHand;
-    }
-
-    public void setQuantityOnHand(int quantityOnHand) {
-        this.quantityOnHand = quantityOnHand;
+        if (stockByStatus == null || stockByStatus.isEmpty()) {
+            return 0;
+        }
+        return stockByStatus.values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
     }
 
     public int getQuantityAllocated() {
@@ -214,5 +281,13 @@ public class ProductStockDocument {
 
     public void setLotBatches(List<LotBatchDocument> lotBatches) {
         this.lotBatches = lotBatches;
+    }
+
+    public String getLocationId() {
+        return locationId;
+    }
+
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 }

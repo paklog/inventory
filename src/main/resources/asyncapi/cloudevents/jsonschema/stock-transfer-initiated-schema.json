@@ -1,12 +1,12 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.stock-transfer.initiated",
+  "$id": "https://paklog.com/schemas/inventory/v1/stock-transfer-initiated.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Transfer Initiated Event",
   "description": "Published when a stock transfer between locations is initiated",
   "type": "object",
-  "required": ["transferId", "sku", "sourceLocation", "destinationLocation", "quantity", "initiatedBy", "reason"],
+  "required": ["transfer_id", "sku", "source_location", "destination_location", "quantity", "initiated_by", "reason"],
   "properties": {
-    "transferId": {
+    "transfer_id": {
       "type": "string",
       "description": "Unique identifier for the transfer",
       "example": "XFER-2024-001"
@@ -16,12 +16,12 @@
       "description": "Stock Keeping Unit identifier",
       "example": "SKU-12345"
     },
-    "sourceLocation": {
+    "source_location": {
       "type": "string",
       "description": "Source location code",
       "example": "WH01-A-01-01-A"
     },
-    "destinationLocation": {
+    "destination_location": {
       "type": "string",
       "description": "Destination location code",
       "example": "WH01-B-02-03-B"
@@ -32,7 +32,7 @@
       "minimum": 1,
       "example": 100
     },
-    "initiatedBy": {
+    "initiated_by": {
       "type": "string",
       "description": "User who initiated the transfer",
       "example": "warehouse.operator@paklog.com"

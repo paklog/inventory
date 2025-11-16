@@ -1,38 +1,38 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.inventory-valuation.changed",
+  "$id": "https://paklog.com/schemas/inventory/v1/inventory-valuation-changed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inventory Valuation Changed Event",
   "description": "Published when inventory valuation changes due to cost updates or valuation method changes",
   "type": "object",
-  "required": ["sku", "valuationMethod", "previousUnitCost", "newUnitCost", "previousTotalValue", "newTotalValue", "quantity", "reason"],
+  "required": ["sku", "valuation_method", "previous_unit_cost", "new_unit_cost", "previous_total_value", "new_total_value", "quantity", "reason"],
   "properties": {
     "sku": {
       "type": "string",
       "description": "Stock Keeping Unit identifier",
       "example": "SKU-12345"
     },
-    "valuationMethod": {
+    "valuation_method": {
       "type": "string",
       "description": "Valuation method used",
       "enum": ["FIFO", "LIFO", "WEIGHTED_AVERAGE", "STANDARD_COST", "MOVING_AVERAGE"],
       "example": "WEIGHTED_AVERAGE"
     },
-    "previousUnitCost": {
+    "previous_unit_cost": {
       "type": "number",
       "description": "Previous unit cost",
       "example": 10.50
     },
-    "newUnitCost": {
+    "new_unit_cost": {
       "type": "number",
       "description": "New unit cost",
       "example": 12.75
     },
-    "previousTotalValue": {
+    "previous_total_value": {
       "type": "number",
       "description": "Previous total inventory value",
       "example": 1050.00
     },
-    "newTotalValue": {
+    "new_total_value": {
       "type": "number",
       "description": "New total inventory value",
       "example": 1275.00

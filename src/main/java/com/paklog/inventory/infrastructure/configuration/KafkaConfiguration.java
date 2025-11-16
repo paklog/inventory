@@ -22,8 +22,10 @@ import java.util.Map;
 @Configuration
 public class KafkaConfiguration {
 
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.consumer.group-id}")
     private String consumerGroupId;
 
     // Producer Configuration for CloudEvents

@@ -1,57 +1,71 @@
 {
-  "$id": "com.paklog.inventory.fulfillment.v1.product-stock.level-changed",
+  "$id": "https://paklog.com/schemas/inventory/v1/stock-level-changed.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stock Level Changed Event",
-  "description": "Published when product stock levels change due to receipts, adjustments, allocations, or picks",
+  "description": "Published when product stock levels change due to receipts, adjustments, allocations, or picks. Uses nested structure with snake_case field names.",
   "type": "object",
-  "required": ["sku", "previousQuantityOnHand", "newQuantityOnHand", "changeReason"],
+  "required": ["sku", "previous_stock_level", "new_stock_level", "change_reason"],
   "properties": {
     "sku": {
       "type": "string",
       "description": "Stock Keeping Unit identifier",
       "example": "SKU-12345"
     },
-    "previousQuantityOnHand": {
-      "type": "integer",
-      "description": "Quantity on hand before the change",
-      "minimum": 0,
-      "example": 100
+    "previous_stock_level": {
+      "type": "object",
+      "description": "Stock level before the change",
+      "required": ["quantity_on_hand", "quantity_allocated", "available_to_promise"],
+      "properties": {
+        "quantity_on_hand": {
+          "type": "integer",
+          "description": "Total physical quantity before change",
+          "minimum": 0,
+          "example": 100
+        },
+        "quantity_allocated": {
+          "type": "integer",
+          "description": "Allocated quantity before change",
+          "minimum": 0,
+          "example": 20
+        },
+        "available_to_promise": {
+          "type": "integer",
+          "description": "Available to Promise before change",
+          "minimum": 0,
+          "example": 80
+        }
+      }
     },
-    "previousQuantityAllocated": {
-      "type": "integer",
-      "description": "Allocated quantity before the change",
-      "minimum": 0,
-      "example": 20
+    "new_stock_level": {
+      "type": "object",
+      "description": "Stock level after the change",
+      "required": ["quantity_on_hand", "quantity_allocated", "available_to_promise"],
+      "properties": {
+        "quantity_on_hand": {
+          "type": "integer",
+          "description": "Total physical quantity after change",
+          "minimum": 0,
+          "example": 150
+        },
+        "quantity_allocated": {
+          "type": "integer",
+          "description": "Allocated quantity after change",
+          "minimum": 0,
+          "example": 30
+        },
+        "available_to_promise": {
+          "type": "integer",
+          "description": "Available to Promise after change",
+          "minimum": 0,
+          "example": 120
+        }
+      }
     },
-    "previousAvailableToPromise": {
-      "type": "integer",
-      "description": "Available to Promise before the change",
-      "minimum": 0,
-      "example": 80
-    },
-    "newQuantityOnHand": {
-      "type": "integer",
-      "description": "Quantity on hand after the change",
-      "minimum": 0,
-      "example": 150
-    },
-    "newQuantityAllocated": {
-      "type": "integer",
-      "description": "Allocated quantity after the change",
-      "minimum": 0,
-      "example": 30
-    },
-    "newAvailableToPromise": {
-      "type": "integer",
-      "description": "Available to Promise after the change",
-      "minimum": 0,
-      "example": 120
-    },
-    "changeReason": {
+    "change_reason": {
       "type": "string",
       "description": "Reason for the stock level change",
-      "enum": ["RECEIPT", "ADJUSTMENT", "ALLOCATION", "PICK", "RETURN", "TRANSFER", "CYCLE_COUNT"],
-      "example": "RECEIPT"
+      "enum": ["RECEIPT", "ADJUSTMENT", "ALLOCATION", "PICK", "RETURN", "TRANSFER", "CYCLE_COUNT", "INITIAL_STOCK", "PHYSICAL_COUNT", "PURCHASE_RECEIPT", "STOCK_RECEIPT", "ITEM_PICKED", "DEALLOCATION", "DAMAGE", "THEFT_LOSS"],
+      "example": "PURCHASE_RECEIPT"
     }
   }
 }
