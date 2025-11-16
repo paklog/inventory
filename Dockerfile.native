@@ -1,0 +1,49 @@
+# Multi-stage Dockerfile for GraalVM Native Image build
+# Produces a minimal container with native executable
+
+# =============================================================================
+# Stage 1: Build Native Image
+# =============================================================================
+FROM ghcr.io/graalvm/graalvm-community:21 AS builder
+
+# Install native-image tool
+RUN gu install native-image
+
+WORKDIR /app
+
+# Copy Maven wrapper and pom.xml for dependency caching
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw .
+RUN chmod +x mvnw
+
+# Download dependencies (cached layer)
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source code
+COPY src ./src
+
+# Build native image (this takes 5-15 minutes and requires ~8GB RAM)
+RUN ./mvnw -Pnative native:compile -DskipTests -B
+
+# =============================================================================
+# Stage 2: Runtime Stage (Minimal)
+# =============================================================================
+FROM gcr.io/distroless/base-debian12
+
+# Copy the native executable
+COPY --from=builder /app/target/inventory /app/inventory
+
+# Configure environment
+ENV SPRING_PROFILES_ACTIVE=native
+
+# Health check (using wget from distroless)
+# Note: distroless doesn't have curl, use alternative health check mechanism
+
+EXPOSE 8085
+
+# Run as non-root (UID 65534 is 'nobody' in distroless)
+USER 65534
+
+# Start the native application
+ENTRYPOINT ["/app/inventory"]

@@ -38,7 +38,11 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- if .Values.image.native }}
+          image: "{{ .Values.image.nativeRepository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- else }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -93,7 +97,8 @@ spec:
             # Outbox configuration
             - name: OUTBOX_PUBLISHER_FIXED_DELAY
               value: {{ .Values.config.outbox.fixedDelay | quote }}
-            # JVM options for container
+            {{- if not .Values.image.native }}
+            # JVM options for container (not used for native images)
             - name: JAVA_OPTS
               value: >-
                 -XX:+UseContainerSupport
@@ -101,9 +106,20 @@ spec:
                 -XX:+HeapDumpOnOutOfMemoryError
                 -XX:HeapDumpPath=/tmp/heapdump.hprof
                 -Djava.security.egd=file:/dev/./urandom
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- if .Values.image.native }}
+          livenessProbe:
+            {{- toYaml .Values.nativeLivenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.nativeReadinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.nativeStartupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.nativeResources | nindent 12 }}
+          {{- else }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -112,6 +128,7 @@ spec:
             {{- toYaml .Values.startupProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp

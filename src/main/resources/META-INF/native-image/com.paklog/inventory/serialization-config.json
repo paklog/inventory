@@ -1,0 +1,38 @@
+[
+  {
+    "name": "com.paklog.inventory.application.dto.StockLevelResponse"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.BulkAllocationResponse"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.AllocationResult"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.AllocationRequestItem"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.UpdateStockLevelRequest"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.CreateReservationRequest"
+  },
+  {
+    "name": "com.paklog.inventory.application.dto.InventoryHealthMetricsResponse"
+  },
+  {
+    "name": "com.paklog.inventory.domain.model.StockLevel"
+  },
+  {
+    "name": "com.paklog.inventory.domain.event.StockLevelChangedEvent"
+  },
+  {
+    "name": "java.util.ArrayList"
+  },
+  {
+    "name": "java.util.HashMap"
+  },
+  {
+    "name": "java.util.LinkedHashMap"
+  }
+]

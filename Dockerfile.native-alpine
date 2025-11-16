@@ -1,0 +1,59 @@
+# Multi-stage Dockerfile for GraalVM Native Image with Alpine
+# Smaller image size with musl libc support
+
+# =============================================================================
+# Stage 1: Build Native Image (Static with musl)
+# =============================================================================
+FROM ghcr.io/graalvm/graalvm-community:21-muslib AS builder
+
+# Install native-image tool
+RUN gu install native-image
+
+WORKDIR /app
+
+# Copy Maven wrapper and pom.xml for dependency caching
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw .
+RUN chmod +x mvnw
+
+# Download dependencies (cached layer)
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source code
+COPY src ./src
+
+# Build static native image with musl (smaller, more portable)
+RUN ./mvnw -Pnative native:compile -DskipTests -B \
+    -Dspring-boot.aot.enabled=true \
+    && strip --strip-unneeded target/inventory || true
+
+# =============================================================================
+# Stage 2: Runtime Stage (Alpine - Smallest)
+# =============================================================================
+FROM alpine:3.19
+
+# Install required libraries and create user
+RUN apk add --no-cache ca-certificates curl && \
+    addgroup -g 1000 appuser && \
+    adduser -u 1000 -G appuser -s /bin/sh -D appuser
+
+WORKDIR /app
+
+# Copy the native executable
+COPY --from=builder --chown=appuser:appuser /app/target/inventory /app/inventory
+
+# Switch to non-root user
+USER appuser
+
+# Configure environment
+ENV SPRING_PROFILES_ACTIVE=native
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8085/actuator/health/liveness || exit 1
+
+EXPOSE 8085
+
+# Start the native application
+ENTRYPOINT ["/app/inventory"]
